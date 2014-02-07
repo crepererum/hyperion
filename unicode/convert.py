@@ -217,7 +217,8 @@ def process_data(fdata, blocks, dout, version, date):
 def main():
     parser = argparse.ArgumentParser(
         description='Creates Unicode symbol macros for LuaLaTeX and XeLaTeX',
-        epilog='To get the required files, go to http://www.unicode.org/Public/UCD/latest/ucd/'
+        epilog='To get the required files, go to http://www.unicode.org/Public/UCD/latest/ucd/',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
         '--blocks',
