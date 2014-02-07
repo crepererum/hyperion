@@ -14,15 +14,15 @@
 %---------------------------------------
 
 %---language--------
-\usepackage[english]{babel}
+\RequirePackage[english]{babel}
 
 %---font config-----
-\usepackage[T1]{fontenc}
-\usepackage{libertine}
-\usepackage{ccicons}
+\RequirePackage[T1]{fontenc}
+\RequirePackage{libertine}
+\RequirePackage{ccicons}
 
 %---microtype-------
-\usepackage[
+\RequirePackage[
     activate={true,nocompatibility},% activate protrusion and expansion
     final,% enable microtype; use "draft" to disable
     tracking=true,% activate these techniques
@@ -35,17 +35,17 @@
 \microtypecontext{spacing=nonfrench}
 
 %---links-----------
-\usepackage{hyperref}
+\RequirePackage{hyperref}
 
 %---math------------
-\usepackage{amsmath}
-\usepackage{amssymb}
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
 
 %---theorems--------
-\usepackage{amsthm}
+\RequirePackage{amsthm}
 
 %---nice table rules
-\usepackage{booktabs}
+\RequirePackage{booktabs}
 
 %---color-----------
 % before: tikz
@@ -55,50 +55,50 @@
 \PassOptionsToPackage{
     final% ignore draft option
 }{graphicx}
-\usepackage{tikz}
-\usepackage{tikz-3dplot}
-\usepackage{pgfplots}
+\RequirePackage{tikz}
+\RequirePackage{tikz-3dplot}
+\RequirePackage{pgfplots}
 
 %---csquotes--------
 % before: bibtex
-\usepackage{csquotes}
+\RequirePackage{csquotes}
 
 %---bibtex----------
 % after: hyperref
-\usepackage[
+\RequirePackage[
     backend=biber,% nice fast backend
     style=alphabetic% how the shortcuts should look like
 ]{biblatex}
 
 %---units-----------
 % after: amssymb
-\usepackage{siunitx}
+\RequirePackage{siunitx}
 
 %---subfigures------
-\usepackage[
+\RequirePackage[
     list=on% add subfigures/-tables to list of figures
 ]{subcaption}
 
 %---list of symbols-
-\usepackage[intoc]{nomencl}
+\RequirePackage[intoc]{nomencl}
 
 %---list of everything
-\usepackage{tocbibind}
+\RequirePackage{tocbibind}
 
 %---algorithm-------
-\usepackage[
+\RequirePackage[
     ruled,% nice lines above/beyond the algorithms
     linesnumbered% draw line numbers
 ]{algorithm2e}
 
 %---better tables---
-\usepackage{tabularx}
+\RequirePackage{tabularx}
 
 %---urls------------
-\usepackage{url}
+\RequirePackage{url}
 
 %---blindtext-------
-\usepackage{blindtext}
+\RequirePackage{blindtext}
 
 
 %---------------------------------------
