@@ -1,0 +1,34 @@
+# build files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.ilg
+*.ist
+*.loa
+*.lof
+*.log
+*.nlo
+*.nls
+*.out
+*.run.xml
+*.toc
+*.xmpi
+
+# build results
+*.dvi
+*.pdf
+svg/*
+
+# resources
+!logos/*
+
+# tmp files
+*~
+*.swp
+*.vim
