@@ -15,7 +15,7 @@
 \RequirePackage{ifluatex}
 \ifluatex
 \else
-\ClassError{hyperionbook}{lualatex required!}{Please use lualatex to compile this file. See http://www.luatex.org/}
+\ClassError{hyperionbook}{LuaLaTeX required!}{Please use LuaLaTeX to compile this file. See http://www.luatex.org/}
 \fi
 
 %---------------------------------------
