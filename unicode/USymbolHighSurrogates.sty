@@ -1,0 +1,21 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{USymbolHighSurrogates}[2014/02/07]
+
+%--------------------
+%---REQUIREMENTS-----
+%--------------------
+\RequirePackage{ifluatex}
+\RequirePackage{ifxetex}
+\ifluatex
+\else
+\ifxetex
+\else
+\ClassError{hyperionbook}{LuaLaTeX or XeLaTeX required!}{Please compile with LuaLaTeX or XeLaTeX to when using this class. See http://www.luatex.org/ and http://xetex.sourceforge.net/}
+\fi
+\fi
+
+%--------------------
+%---SYMBOLS----------
+%--------------------
+\newcommand{\USymbolNonPrivateUseHighSurrogateFirst}{\symbol{"D800}}
+\newcommand{\USymbolNonPrivateUseHighSurrogateLast}{\symbol{"DB7F}}
