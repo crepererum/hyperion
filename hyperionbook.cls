@@ -10,6 +10,15 @@
 ]{scrbook}
 
 %---------------------------------------
+%---------REQUIREMENTS------------------
+%---------------------------------------
+\RequirePackage{ifluatex}
+\ifluatex
+\else
+\ClassError{hyperionbook}{lualatex required!}{Please use lualatex to compile this file. See http://www.luatex.org/}
+\fi
+
+%---------------------------------------
 %---------PACKAGES----------------------
 %---------------------------------------
 
