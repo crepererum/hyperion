@@ -4,6 +4,42 @@ import argparse
 from datetime import date
 import re
 
+"""Helper map for roman number convertion"""
+numeral_map = (
+    (1000,  'M'),
+    ( 900, 'CM'),
+    ( 500,  'D'),
+    ( 400, 'CD'),
+    ( 100,  'C'),
+    (  90, 'XC'),
+    (  50,  'L'),
+    (  40, 'XL'),
+    (  10,  'X'),
+    (   9, 'IX'),
+    (   5,  'V'),
+    (   4, 'IV'),
+    (   1,  'I')
+)
+
+def int_to_roman(i):
+    """Converts integer to roman number string
+
+    Args:
+        i: positive integer
+
+    Returns:
+        Roman string representation
+
+    """
+    result = []
+
+    for integer, numeral in numeral_map:
+        count = i // integer
+        result.append(numeral * count)
+        i -= integer * count
+
+    return ''.join(result)
+
 def default_date():
     """Creates date string according to the current date
 
@@ -52,19 +88,44 @@ def convert_namepart(s):
     s = s.lower()
     return s[0].upper() + s[1:]
 
-def convert_name(s):
+def convert_number(s):
+    """Converts number to LaTeX name parts
+
+    Args:
+        s: positive integer
+
+    Returns:
+        String containing LaTeX name parts
+
+    """
+    return ' ' + ' '.join(list(int_to_roman(s))) + ' '
+
+def convert_name(s, specials=False):
     """Converts an entire name by appending its parts
 
     Args:
         s: unescaped python string containing all parts of the name
+        specials: if True, special characters get converted to strings
 
     Returns:
         LaTeX compatible name
 
     """
-    s = re.sub(r"[^a-zA-Z0-9\s]", '', s)
+    # convert special characters to string representations
+    if specials:
+        s = s.replace('-', ' Minus ')
+
+    # convert numbers to roman strings
+    s = re.sub(r"[0-9]+", lambda x: convert_number(int(x.group(0))), s)
+
+    # strip all illegal characters
+    s = re.sub(r"[^a-zA-Z\s]", '', s)
+
+    # remove unnecessary whitespaces
     s = s.strip()
     s = re.sub(r"\s+", ' ', s)
+
+    # build one string of all words
     a = s.split(' ')
     a = map(convert_namepart, a)
     return ''.join(a)
@@ -79,7 +140,7 @@ def package_name(s):
         LaTeX package name
 
     """
-    return 'USymbol' + convert_name(s)
+    return 'USymbol' + convert_name(s, False)
 
 def symbol_name(s):
     """Converts a string to a LaTeX symbol name
@@ -91,7 +152,7 @@ def symbol_name(s):
         LaTeX symbol name
 
     """
-    return 'USymbol' + convert_name(s)
+    return 'USymbol' + convert_name(s, True)
 
 def print_header(s, f):
     """Prints a LaTeX section header comment to a file
@@ -165,12 +226,11 @@ def print_symbol(f, name, hnumber):
 
     Args:
         f: LaTeX file
-        name: unescpaed symbol name
+        name: escpaed symbol name
         hnumber: hexnumber string
 
     """
-    sname = symbol_name(name)
-    f.write('\\newcommand{\\' + sname + '}{\\symbol{"' + hnumber + '}}\n')
+    f.write('\\newcommand{\\' + name + '}{\\symbol{"' + hnumber + '}}\n')
 
 def process_data(fdata, blocks, dout, version, date):
     """Processes UnicodeData.txt
@@ -195,13 +255,20 @@ def process_data(fdata, blocks, dout, version, date):
     f = None
     it = iter(blocks)
     end = None
+    index = {}
 
     for l in fdata:
         a = l.split(';')
         hnumber = a[0]
         name1 = a[1]
         name2 = a[10]
-        name = name1 + ' ' + name2
+        name = symbol_name(name1 + ' ' + name2)
+
+        # prevent duplicate names
+        while name in index:
+            index[name] += 1
+            name += convert_name(str(index[name]))
+        index[name] = 1
 
         if (not f) or (int(hnumber, 16) > end):
             finalize_package(f)
