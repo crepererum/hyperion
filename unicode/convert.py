@@ -147,6 +147,19 @@ def create_new_package(name, dout, version, date, description, fall=None):
 
     return f
 
+def finalize_package(f):
+    """Write final LaTeX package data and close stream
+
+    Args:
+        f: LaTeX file
+
+    """
+    if f:
+        print_header('end', f)
+        f.write('\\endinput\n')
+        f.close()
+        print('done')
+
 def print_symbol(f, name, hnumber):
     """Prints a symbol definition to a LaTeX file
 
@@ -191,9 +204,7 @@ def process_data(fdata, blocks, dout, version, date):
         name = name1 + ' ' + name2
 
         if (not f) or (int(hnumber, 16) > end):
-            if f:
-                print('done')
-                f.close()
+            finalize_package(f)
 
             block = next(it)
             end = block['end']
@@ -208,10 +219,7 @@ def process_data(fdata, blocks, dout, version, date):
 
         print_symbol(f, name, hnumber)
 
-    if f:
-        print('done')
-        f.close()
-
+    finalize_package(f)
     fall.close()
 
 def main():
