@@ -4,11 +4,11 @@ import argparse
 from datetime import date
 import re
 
-def default_version():
-    """Creates version string according to the current date
+def default_date():
+    """Creates date string according to the current date
 
     Returns:
-        default version string
+        default date string
 
     """
     return date.today().strftime('%Y/%m/%d')
@@ -106,13 +106,15 @@ def print_header(s, f):
     f.write('%---' + s.upper() + ('-' * (17 - len(s))) + '\n')
     f.write('%--------------------\n')
 
-def create_new_package(name, dout, version, fall=None):
+def create_new_package(name, dout, version, date, description, fall=None):
     """Creates a new LaTeX package
 
     Args:
         name: unescaped package name
         dout: output directory
         version: package version string
+        date: package date (YYYY/MM/DD)
+        description: package description
         fall: LaTeX package that collects all packages (metapackage)
 
     Returns:
@@ -125,7 +127,7 @@ def create_new_package(name, dout, version, fall=None):
     f = open(dout + '/' + pname + '.sty', 'w')
 
     f.write('\\NeedsTeXFormat{LaTeX2e}\n')
-    f.write('\\ProvidesPackage{' + pname + '}[' + version + ']\n')
+    f.write('\\ProvidesPackage{' + pname + '}[' + date + ' v' + version + ' ' + description + ']\n')
 
     print_header('requirements', f)
     f.write('\\RequirePackage{ifluatex}\n')
@@ -157,7 +159,7 @@ def print_symbol(f, name, hnumber):
     sname = symbol_name(name)
     f.write('\\newcommand{\\' + sname + '}{\\symbol{"' + hnumber + '}}\n')
 
-def process_data(fdata, blocks, dout, version):
+def process_data(fdata, blocks, dout, version, date):
     """Processes UnicodeData.txt
 
     Args:
@@ -165,11 +167,18 @@ def process_data(fdata, blocks, dout, version):
         blocks: parsed blocks
         dout: output directory
         version: package version string
+        date: date string (YYYY/MM/DD)
 
     """
     print('')
     print('---Process data---')
-    fall = create_new_package('all', dout, version)
+    fall = create_new_package(
+        name='all',
+        dout=dout,
+        version=version,
+        date=date,
+        description='Provides macros for all Unicode symbols'
+    )
     f = None
     it = iter(blocks)
     end = None
@@ -188,7 +197,14 @@ def process_data(fdata, blocks, dout, version):
 
             block = next(it)
             end = block['end']
-            f = create_new_package(block['name'], dout, version, fall)
+            f = create_new_package(
+                name=block['name'],
+                dout=dout,
+                version=version,
+                date=date,
+                description='Provides macros for Unicode symbols of block ' + block['name'],
+                fall=fall
+            )
 
         print_symbol(f, name, hnumber)
 
@@ -222,9 +238,15 @@ def main():
         help='Output folder'
     )
     parser.add_argument(
+        '--date',
+        type=str,
+        default=default_date(),
+        help='Date of the generated packages (YYYY/MM/DDD)'
+    )
+    parser.add_argument(
         '--version',
         type=str,
-        default=default_version(),
+        default="1.0",
         help='Version of the generated packages'
     )
 
@@ -233,7 +255,13 @@ def main():
     blocks = parse_blocks(args.blocks)
     args.blocks.close()
 
-    process_data(args.data, blocks, args.output, args.version)
+    process_data(
+        fdata=args.data,
+        blocks=blocks,
+        dout=args.output,
+        version=args.version,
+        date=args.date
+    )
     args.data.close()
 
 if __name__ == '__main__':
