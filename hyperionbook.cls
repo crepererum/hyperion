@@ -217,5 +217,10 @@
 \newcolumntype{R}{>{\raggedleft\arraybackslash}X}
 \newcommand*\rot{\rotatebox{90}}
 
-%% **** END OF CLASS ****
+
+%--------------------
+%---END--------------
+%--------------------
+
+\endinput
 
