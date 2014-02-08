@@ -287,7 +287,7 @@ def process_data(fdata, blocks, dout, version, date):
         print_symbol(f, name, hnumber)
 
     finalize_package(f)
-    fall.close()
+    finalize_package(fall)
 
 def main():
     parser = argparse.ArgumentParser(
