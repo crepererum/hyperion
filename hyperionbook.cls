@@ -1,5 +1,5 @@
 \NeedsTeXFormat{LaTeX2e} % We do need LaTeX2e
-\ProvidesClass{hyperionbook}
+\ProvidesClass{hyperionbook}[2014/02/08 v1.0 Modern and beautiful scrbook-based class]
 \LoadClass[% Class based on scrbook
     fontsize=11pt,% bigger font
     paper=a4,% paper size
