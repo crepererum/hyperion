@@ -29,6 +29,7 @@
 \RequirePackage[T1]{fontenc}
 \RequirePackage{libertine}
 \RequirePackage{ccicons}
+\RequirePackage{relsize}
 
 %---microtype-------
 \RequirePackage[
@@ -131,6 +132,7 @@
     citecolor=black,% black cite
     final% also work in draft mode, TODO remove this!
 }
+\renewcommand*{\UrlFont}{\ttfamily\smaller\relax}
 
 % tikz libs
 \usetikzlibrary{
@@ -197,7 +199,7 @@
 \newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
 \newcommand{\mutual}[2]{\mathrm{I}\left(#1,#2\right)}
 \newcommand{\entropy}[1]{\mathrm{H}\left(#1\right)}
-\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\code}[1]{\footnotesize\textcolor{gray}{\texttt{#1}}}
 
 % calculation helper
 \newcommand{\mycalc}[2]{
