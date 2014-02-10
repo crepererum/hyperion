@@ -5,7 +5,7 @@ from datetime import date
 import re
 
 """Helper map for roman number convertion"""
-numeral_map = (
+NUMERAL_MAP = (
     (1000,  'M'),
     ( 900, 'CM'),
     ( 500,  'D'),
@@ -33,7 +33,7 @@ def int_to_roman(i):
     """
     result = []
 
-    for integer, numeral in numeral_map:
+    for integer, numeral in NUMERAL_MAP:
         count = i // integer
         result.append(numeral * count)
         i -= integer * count
