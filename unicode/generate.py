@@ -40,15 +40,6 @@ def int_to_roman(i):
 
     return ''.join(result)
 
-def default_date():
-    """Creates date string according to the current date
-
-    Returns:
-        default date string
-
-    """
-    return date.today().strftime('%Y/%m/%d')
-
 def parse_blocks(fblocks):
     """Parses the Blocks.txt file
 
@@ -74,19 +65,6 @@ def parse_blocks(fblocks):
 
     print('done')
     return result
-
-def convert_namepart(s):
-    """Converts a part (mostly words) of a name to a LaTeX name part
-
-    Args:
-        s: escpaped python string of the part
-
-    Returns:
-        LaTeX compatible name part
-
-    """
-    s = s.lower()
-    return s[0].upper() + s[1:]
 
 def convert_number(s):
     """Converts number to LaTeX name parts
@@ -127,7 +105,7 @@ def convert_name(s, specials=False):
 
     # build one string of all words
     a = s.split(' ')
-    a = map(convert_namepart, a)
+    a = map(lambda x: x[0].upper() + x[1:].lower(), a)
     return ''.join(a)
 
 def package_name(s):
@@ -258,6 +236,7 @@ def process_data(fdata, blocks, dout, version, date):
     index = {}
 
     for l in fdata:
+        # parse line
         a = l.split(';')
         hnumber = a[0]
         name1 = a[1]
@@ -270,6 +249,7 @@ def process_data(fdata, blocks, dout, version, date):
             name += convert_name(str(index[name]))
         index[name] = 1
 
+        # next block?
         if (not f) or (int(hnumber, 16) > end):
             finalize_package(f)
 
@@ -316,7 +296,7 @@ def main():
     parser.add_argument(
         '--date',
         type=str,
-        default=default_date(),
+        default=date.today().strftime('%Y/%m/%d'),
         help='Date of the generated packages (YYYY/MM/DDD)'
     )
     parser.add_argument(
