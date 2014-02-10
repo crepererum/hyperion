@@ -8,7 +8,9 @@
 *.glg
 *.glo
 *.gls
+*.idx
 *.ilg
+*.ind
 *.ist
 *.loa
 *.lof
