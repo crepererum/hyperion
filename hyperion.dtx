@@ -17,7 +17,9 @@
 % The Current Maintainer of this work is Marco Neumann.
 %
 % This work consists of the files hyperion.dtx and hyperion.ins
-% and the derived file hyperionbook.sty.
+% and the derived files:
+%   hyperionbook.sty
+%   hyperiondoc.sty
 %
 % \fi
 %
@@ -46,7 +48,11 @@
 \NeedsTeXFormat{LaTeX2e}
 %
 %<book>\ProvidesClass{hyperionbook}%
-%<book>[2014/02/08 v1.0 Modern and beautiful scrbook-based class]
+%<doc>\ProvidesClass{hyperiondoc}%
+[2014/02/08 v1.0 %
+%<book>Modern and beautiful scrbook-based class]
+%<doc>Modern and beautiful ltxdoc class]
+%
 %<book>\LoadClass[% Class based on scrbook
 %<book>    fontsize=11pt,% bigger font
 %<book>    paper=a4,% paper size
@@ -56,8 +62,6 @@
 %<book>    draft% TODO remove this!
 %<book>]{scrbook}
 %
-%<doc>\ProvidesClass{hyperiondoc}%
-%<doc>[2014/02/08 v1.0 Modern and beautiful ltxdoc class]
 %<doc>\LoadClass{ltxdoc}
 %    \end{macrocode}
 %
