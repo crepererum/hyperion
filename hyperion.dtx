@@ -59,6 +59,7 @@
 %
 % \section{Classes}
 % There are two classes: \code{hyperionbook}, which is based on \code{scrbook} and \code{hyperiondoc}, which is based on \code{ltxdoc}.
+%
 %    \begin{macrocode}
 \NeedsTeXFormat{LaTeX2e}
 %
@@ -83,6 +84,7 @@
 %
 % \section{Requirements}
 % To use the classes provided by this package, Lua\LaTeX{} is required.
+%
 %    \begin{macrocode}
 \RequirePackage{ifluatex}
 \ifluatex
@@ -102,6 +104,7 @@ See http://www.luatex.org/}
 %
 % \subsection{Language}
 % Currently only English is supported.
+%
 %    \begin{macrocode}
 \RequirePackage[english]{babel}
 %    \end{macrocode}
@@ -109,6 +112,7 @@ See http://www.luatex.org/}
 %
 % \subsection{Font}
 % Linux Libertine and microtype are used to provide a modern optimized typeface.
+%
 %    \begin{macrocode}
 \RequirePackage[T1]{fontenc}
 \RequirePackage{libertine}
@@ -127,6 +131,7 @@ See http://www.luatex.org/}
 %
 % \subsection{References}
 % To reference other documents, websites, figures, tables or sections of the document, the commands \code{\bs ref}, \code{\bs URL} and \code{\bs cite} should be used. Biblatex and Biber provides useful data which can used for a bibliography.
+%
 %    \begin{macrocode}
 \RequirePackage{hyperref}
 \RequirePackage{csquotes}% before: bibtex
@@ -165,6 +170,7 @@ See http://www.luatex.org/}
 % \begin{macro}{\colorsquare}
 % Furthermore, there is a \code{\bs colorsquare} macro which is great for explaining colors in tables and captions. Example: \code{\bs colorsquare\{colcontrast\}} $=$ \colorsquare{colcontrast}
 % \end{macro}
+%
 %    \begin{macrocode}
 \RequirePackage[table]{xcolor}% before: tikz
 \definecolor{colcontrast}{RGB}{40,100,40}
@@ -269,6 +275,7 @@ See http://www.luatex.org/}
 %     \bottomrule
 % \end{tabularx}
 % \end{center}
+%
 %    \begin{macrocode}
 \RequirePackage{amsmath}
 \RequirePackage{amssymb}
@@ -332,6 +339,7 @@ See http://www.luatex.org/}
 %     \bottomrule
 % \end{tabularx}
 % \end{center}
+%
 %    \begin{macrocode}
 \RequirePackage{booktabs}
 \RequirePackage{tabularx}
