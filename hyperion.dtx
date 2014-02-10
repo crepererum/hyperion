@@ -296,6 +296,27 @@ See http://www.luatex.org/}
 %
 %
 % \subsection{Tables}
+% \begin{environment}{tabularx}
+% \begin{macro}{\rot}
+% \begin{macro}{\toprule}
+% \begin{macro}{\midrule}
+% \begin{macro}{\bottomrule}
+% It is recommended to use \code{tabularx} for tables so it is possible to control the width of the table. There are \num{3} additional column types: \code{R} (stretch, right), \code{L} (stretch, left) and \code{C} (stretch, center). The \code{\bs rot} macro can be used to rotate text by \SI{90}{\degree}. Instead of the old \code{\bs hline} the \num{3} variants \code{\bs toprule}, \code{\bs midrule} and \code{\bs bottomrule} are supposed to use in tables.
+% \begin{center}
+% \begin{tabularx}{\linewidth}{l|X|L|R|C}
+%     \toprule
+%     \code{\bs rot} Macro & \rot{Age} & \rot{Size} & \rot{Weight} & \rot{Gender} \\
+%     Column Type & \code{X} & \code{L} & \code{R} & \code{C} \\
+%     \midrule
+%     & \num{2} & \num{70} & \num{8} & male \\
+%     & \num{21} & \num{210} & \num{150} & female \\
+%     & \num{8} & \num{97} & \num{38} & female \\
+%     & \num{101} & \num{152} & \num{2} & male \\
+%     \midrule
+%     Conclusion & Looks quite fine & Looks quite fine & Looks quite fine & Looks quite fine \\
+%     \bottomrule
+% \end{tabularx}
+% \end{center}
 %    \begin{macrocode}
 \RequirePackage{booktabs}
 \RequirePackage{tabularx}
@@ -304,6 +325,11 @@ See http://www.luatex.org/}
 \newcolumntype{C}{>{\centering\arraybackslash}X}
 \newcommand*\rot{\rotatebox{90}}
 %    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{environment}
 %
 %
 % \subsection{Algorithms and Code}
