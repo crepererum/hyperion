@@ -1,0 +1,323 @@
+% \iffalse meta-comment
+%
+% hyperion.dtx
+%
+% Copyright (C) 2014 by Marco Neumann
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2005/12/01 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+%
+% The Current Maintainer of this work is Marco Neumann.
+%
+% This work consists of the files hyperion.dtx and hyperion.ins
+% and the derived file hyperionbook.sty.
+%
+% \fi
+%
+%
+% \iffalse
+%<*driver>
+\documentclass{hyperiondoc}
+\EnableCrossrefs
+\CodelineIndex
+\RecordChanges
+\begin{document}
+    \DocInput{hyperion.dtx}
+\end{document}
+%</driver>
+% \fi
+%
+%
+% \title{Hyperion}
+% \author{Marco Neumann \\ \texttt{marco@crepererum.net}}
+% \maketitle
+%
+%
+% \section{Classes}
+% There are two classes: \code{hyperionbook}, which is based on \code{scrbook} and \code{hyperiondoc}, which is based on \code{ltxdoc}.
+%    \begin{macrocode}
+\NeedsTeXFormat{LaTeX2e}
+%
+%<book>\ProvidesClass{hyperionbook}%
+%<book>[2014/02/08 v1.0 Modern and beautiful scrbook-based class]
+%<book>\LoadClass[% Class based on scrbook
+%<book>    fontsize=11pt,% bigger font
+%<book>    paper=a4,% paper size
+%<book>    pagesize,% set pagesize in PDF
+%<book>    twoside=false,% =oneside
+%<book>    listof=totoc,%add list of figures to toc
+%<book>    draft% TODO remove this!
+%<book>]{scrbook}
+%
+%<doc>\ProvidesClass{hyperiondoc}%
+%<doc>[2014/02/08 v1.0 Modern and beautiful ltxdoc class]
+%<doc>\LoadClass{ltxdoc}
+%    \end{macrocode}
+%
+%
+% \section{Requirements}
+% To use the classes provided by this package, LuaLaTeX is required.
+%    \begin{macrocode}
+\RequirePackage{ifluatex}
+\ifluatex
+\else
+%<book>\ClassError{hyperionbook}%
+%<doc>\ClassError{hyperiondoc}%
+{LuaLaTeX required!}%
+{Please use LuaLaTeX to compile this file. %
+See http://www.luatex.org/}
+\fi
+%    \end{macrocode}
+%
+%
+% \section{Features}
+% Hyperion provides a bunch of very useful features to create clean and modern documents very easy. This section provides information about these features and presents the implementation details.
+%
+%
+% \subsection{Language}
+% Currently only English is supported.
+%    \begin{macrocode}
+\RequirePackage[english]{babel}
+%    \end{macrocode}
+%
+%
+% \subsection{Font}
+% Linux Libertine and microtype are used to provide a modern optimized typeface.
+%    \begin{macrocode}
+\RequirePackage[T1]{fontenc}
+\RequirePackage{libertine}
+\RequirePackage{relsize}
+\RequirePackage[
+    activate={true,nocompatibility},
+    final,
+    tracking=true,
+    factor=1100,
+    stretch=10,
+    shrink=10
+]{microtype}
+\microtypecontext{spacing=nonfrench}
+%    \end{macrocode}
+%
+%
+% \subsection{References}
+% To reference other documents, websites, figures, tables or sections of the document, the commands \code{\bs ref}, \code{\bs URL} and \code{\bs cite} should be used. Bibtex and biber provides useful data which can used for a bibliography.
+%    \begin{macrocode}
+\RequirePackage{hyperref}
+\RequirePackage{csquotes}% before: bibtex
+\RequirePackage[
+    backend=biber,% nice fast backend
+    style=alphabetic% how the shortcuts should look like
+]{biblatex}% after: hyperref
+\RequirePackage{url}
+\hypersetup{
+    colorlinks,% colored text instead of borders
+    linkcolor=black,% black inter document links
+    urlcolor=black,% black urls
+    citecolor=black,% black cite
+    final% also work in draft mode, TODO remove this!
+}
+\addbibresource{citiation.bib}
+\renewcommand*{\UrlFont}{\ttfamily\smaller\relax}
+%    \end{macrocode}
+%
+%
+% \subsection{Colors}
+% The following colors get definied and should be used as following:
+% \begin{center}
+% \begin{tabularx}{\linewidth}{llX}
+%     \toprule
+%     Name & Color & Usage \\
+%     \midrule
+%     colcontrast & \colorsquare{colcontrast} & Primary contrast color in graphics \\
+%     colcontrast2 & \colorsquare{colcontrast2} & Second contrast color in graphics \\
+%     colcontrast3 & \colorsquare{colcontrast3} & Third contrast color in graphics \\
+%     colcontrast4 & \colorsquare{colcontrast4} & Forth contrast color in graphics \\
+%     colcode & \colorsquare{colcode} & Code, macros and variables \\
+%     \bottomrule
+% \end{tabularx}
+% \end{center}
+% \begin{macro}{\colorsquare}
+% Furthermore, there is a \code{\bs colorsquare} macro which is great for explaining colors in tables and captions. Example: \code{\bs colorsquare\{colcontrast\}} $=$ \colorsquare{colcontrast}
+% \end{macro}
+%    \begin{macrocode}
+\RequirePackage[table]{xcolor}% before: tikz
+\definecolor{colcontrast}{RGB}{40,100,40}
+\definecolor{colcontrast2}{RGB}{40,40,100}
+\definecolor{colcontrast3}{RGB}{80,20,80}
+\definecolor{colcontrast4}{RGB}{80,80,20}
+\definecolor{colcode}{gray}{0.25}
+\newcommand{\colorsquare}[1]{\colorbox{#1}{\phantom{\texttt{X}}}}
+%    \end{macrocode}
+%
+%
+% \subsection{Graphics}
+%    \begin{macrocode}
+\PassOptionsToPackage{
+    final% ignore draft option
+}{graphicx}
+\RequirePackage{tikz}
+\RequirePackage{tikz-3dplot}
+\RequirePackage{pgfplots}
+\graphicspath{{./img/}}
+
+% tikz libs
+\usetikzlibrary{
+    arrows,
+    backgrounds,
+    positioning
+}
+
+% pgfplots
+\pgfplotsset{
+    compat=newest,
+    compat/show suggested version=false
+}
+
+% tikz macros
+\tikzset{
+% scaling of plot marks (true/false):
+    scale plot marks/.is choice,
+    scale plot marks/false/.code={
+        \def\pgfuseplotmark##1{\pgftransformresetnontranslations\csname pgf@plot@mark@##1\endcsname}
+    },
+    scale plot marks/true/.style={},
+    scale plot marks/.default=true,
+%
+% arrow styles:
+    >=stealth',
+    axis/.style={->, very thick, >=stealth'},
+%
+% graphs and flowcharts:
+    graphedge/.style={ultra thick},
+    graphnode/.style={circle, draw, fill=white},
+    blocknode/.style={draw, fill=white, minimum width=4em},
+%
+% different dots and lines used by diagrams:
+    dot/.style={mark=*, mark size=0.08em, only marks, scale plot marks=false},
+    measure/.style={mark=*, mark size=0.12em, smooth, scale plot marks=false}
+}
+
+% circled characters (e.g. copyright symbol)
+\newcommand*\circled[1]{\tikz[baseline={($(char.south) + (0,0.5pt)$)}]{
+    \node[shape=circle,draw,inner sep=0.5pt,font=\tiny,thick] (char) {\textsf{#1}};}}
+
+% filled quad (used for graphics)
+\def\filledquad#1#2{
+\begin{scope}[shift={#1}]
+    \draw [fill=black](0,0) -- (#2,0) -- (#2,#2) -- (0,#2) -- cycle;
+\end{scope}
+}
+\newcommand{\mycalc}[2]{
+    \pgfkeys{/pgf/fpu, /pgf/fpu/output format=fixed}
+    \pgfmathparse{#2}
+    \edef#1{\pgfmathresult}
+    \pgfkeys{/pgf/fpu=false}
+}
+%    \end{macrocode}
+%
+%
+% \subsection{Symbols and Math}
+% \begin{macro}{\set}
+% \begin{macro}{\card}
+% \begin{macro}{\concat}
+% \begin{macro}{\prob}
+% \begin{macro}{\mutual}
+% \begin{macro}{\entropy}
+% \begin{macro}{\code}
+% \begin{macro}{\bs}
+% Nearly all symbols you need are imported and some helpers for math typsetting are avaible.
+%
+% \begin{center}
+% \begin{tabularx}{\linewidth}{XXX}
+%     \toprule
+%     Macro & Example & Result \\
+%     \midrule
+%     \code{\bs set} & \code{\$\bs set\{N\}\$} & $\set{N}$ \\
+%     \code{\bs card} & \code{\$\bs card\{A\}\$} & $\card{A}$ \\
+%     \code{\bs concat} & \code{\$A \bs concat B\$} & $A \concat B$ \\
+%     \code{\bs prob} & \code{\$\bs prob\{X\}\$} & $\prob{X}$ \\
+%     \code{\bs mutual} & \code{\$\bs mutual\{X\}\{Y\}\$} & $\mutual{X}{Y}$ \\
+%     \code{\bs entropy} & \code{\$\bs entropy\{X\}\$} & $\entropy{X}$ \\
+%     \code{\bs code} & \code{\bs code\{getID()\}} & \code{getID()} \\
+%     \code{\bs bs} & \code{\bs bs} & \bs \\
+%     \bottomrule
+% \end{tabularx}
+% \end{center}
+%    \begin{macrocode}
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{ccicons}
+\RequirePackage{siunitx}% after: amssymb
+\RequirePackage[intoc]{nomencl}
+\makenomenclature
+\renewcommand{\nomname}{List of Symbols}
+\newcommand{\set}[1]{\mathbb{#1}}
+\newcommand{\card}[1]{\left|#1\right|}
+\newcommand{\concat}{+\kern-0.8ex:}
+\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
+\newcommand{\mutual}[2]{\mathrm{I}\left(#1,#2\right)}
+\newcommand{\entropy}[1]{\mathrm{H}\left(#1\right)}
+\newcommand{\code}[1]{\textsmaller{\textcolor{colcode}{\texttt{#1}}}}
+\newcommand{\bs}{\textbackslash}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%
+%
+% \subsection{Structure}
+%    \begin{macrocode}
+\RequirePackage{amsthm}
+\RequirePackage[
+    list=on% add subfigures/-tables to list of figures
+]{subcaption}
+\RequirePackage{tocbibind}
+\theoremstyle{plain}
+\newtheorem{envtheo}{Theorem}
+\theoremstyle{definition}
+\newtheorem{envdef}{Definition}
+%    \end{macrocode}
+%
+%
+% \subsection{Tables}
+%    \begin{macrocode}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcommand*\rot{\rotatebox{90}}
+%    \end{macrocode}
+%
+%
+% \subsection{Algorithms and Code}
+%    \begin{macrocode}
+\RequirePackage[
+    ruled,% nice lines above/beyond the algorithms
+    linesnumbered% draw line numbers
+]{algorithm2e}
+\newcommand{\listofalgorithmes}{\tocfile{\listalgorithmcfname}{loa}}
+%    \end{macrocode}
+%
+%
+% \subsection{Debugging and Prototyping}
+%    \begin{macrocode}
+\RequirePackage{blindtext}
+%    \end{macrocode}
+%
+%
+% \Finale
+\endinput
+
