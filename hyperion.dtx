@@ -159,11 +159,11 @@ See http://www.luatex.org/}
 %     \toprule
 %     Name & Color & Usage \\
 %     \midrule
-%     colcontrast & \colorsquare{colcontrast} & Primary contrast color in graphics \\
-%     colcontrast2 & \colorsquare{colcontrast2} & Second contrast color in graphics \\
-%     colcontrast3 & \colorsquare{colcontrast3} & Third contrast color in graphics \\
-%     colcontrast4 & \colorsquare{colcontrast4} & Forth contrast color in graphics \\
-%     colcode & \colorsquare{colcode} & Code, macros and variables \\
+%     \code{colcontrast} & \colorsquare{colcontrast} & Primary contrast color in graphics \\
+%     \code{colcontrast2} & \colorsquare{colcontrast2} & Second contrast color in graphics \\
+%     \code{colcontrast3} & \colorsquare{colcontrast3} & Third contrast color in graphics \\
+%     \code{colcontrast4} & \colorsquare{colcontrast4} & Forth contrast color in graphics \\
+%     \code{colcode} & \colorsquare{colcode} & Code, macros and variables \\
 %     \bottomrule
 % \end{tabularx}
 % \end{center}
@@ -362,6 +362,7 @@ See http://www.luatex.org/}
     linesnumbered% draw line numbers
 ]{algorithm2e}
 \newcommand{\listofalgorithmes}{\tocfile{\listalgorithmcfname}{loa}}
+%<doc>\def\MacroFont{\ttfamily\smaller\color{colcode}}
 %    \end{macrocode}
 %
 %
