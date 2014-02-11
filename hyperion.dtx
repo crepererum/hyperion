@@ -47,7 +47,7 @@
 % \DoNotIndex{\arraybackslash,\centering,\left,\right,\raggedleft,\raggedright}
 % \DoNotIndex{\definecolor,\colorbox,\textcolor,\phantom}
 % \DoNotIndex{\draw,\kern,\pgfkeys,\pgfmathparse,\pgfmathresult,\pgfplotsset,\pgftransformresetnontranslations,\pgfuseplotmark,\rotatebox,\tikz,\tikzset}
-% \DoNotIndex{\mathbb,\mathrm,\smaller,\textsmaller,\tiny,\textsf,\texttt,\ttfamily,\UrlFont}
+% \DoNotIndex{\mathbb,\mathrm,\smaller,\textsmaller,\tiny,\textsf,\texttt,\ttfamily,\UrlFont,\MacroFont,\setmathfont}
 % \DoNotIndex{\listalgorithmcfname,\nomname}
 % \DoNotIndex{\textbackslash}
 %
@@ -257,7 +257,7 @@ See http://www.luatex.org/}
 % \begin{macro}{\entropy}
 % \begin{macro}{\code}
 % \begin{macro}{\bs}
-% Nearly all symbols you need are imported and some helpers for math typsetting are avaible.
+% Nearly all symbols you need are imported and some helpers for math typsetting are avaible. Math is emmited as Unicode which provides a clearer look than the standard font and kerning hacks. This also enables the user to copy-and-paste symbol and search for equations.
 %
 % \begin{center}
 % \begin{tabularx}{\linewidth}{XXX}
@@ -282,6 +282,8 @@ See http://www.luatex.org/}
 \RequirePackage{ccicons}
 \RequirePackage{siunitx}% after: amssymb
 \RequirePackage[intoc]{nomencl}
+\RequirePackage{unicode-math}% after:amsmath
+\setmathfont{xits-math.otf}
 \makenomenclature
 \renewcommand{\nomname}{List of Symbols}
 \newcommand{\set}[1]{\mathbb{#1}}
