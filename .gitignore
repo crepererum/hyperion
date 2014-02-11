@@ -27,6 +27,10 @@
 *.pdf
 svg/*
 
+# cache and bytecode
+.autotex.state
+*.pyc
+
 # resources
 !logos/*
 
