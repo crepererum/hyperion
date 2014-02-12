@@ -165,6 +165,7 @@ class CommandAction(Action):
         )
         fcntl.fcntl(child.stdout, fcntl.F_SETFL, os.O_NONBLOCK)
         fcntl.fcntl(child.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
+        flog = open(config['log'], 'a')
         status = None
         counter = 0
         while status == None:
@@ -176,12 +177,12 @@ class CommandAction(Action):
 
             changed = False
             if out != '':
-                config['log'].write(out)
-                config['log'].flush()
+                flog.write(out)
+                flog.flush()
                 changed = True
             if err != '':
-                config['log'].write(err)
-                config['log'].flush()
+                flog.write(err)
+                flog.flush()
                 changed = True
 
             if changed:
@@ -219,6 +220,7 @@ class CommandAction(Action):
                         cmd.add_dependency(a)
                         result.append(cmd)
 
+        flog.close()
         print('\bOK(' + str(status) + ')')
         return result
 
@@ -307,7 +309,10 @@ config = {
         r"\.log$",
         r"\.pdf$"
     ],
-    'tmpdir': _tmpdir.name
+    'log': 'autotex.log',
+    'state': '.autotex.state',
+    'tmpdir': _tmpdir.name,
+    'verbose': False
 }
 
 ################################################################################
@@ -418,13 +423,14 @@ def patch_list(orig, patch):
         l = orig.copy()
 
     for entry in patch:
-        if (type(entry) == str) and entry.startswith(YAML_REMOVE):
-            l = [x for x in l if x != entry[len(YAML_REMOVE):]]
-        elif (type(entry) == str) and entry.startswith(YAML_PATCH):
-            # ignore
-            pass
-        else:
-            l.append(entry)
+        if entry != None:
+            if (type(entry) == str) and entry.startswith(YAML_REMOVE):
+                l = [x for x in l if x != entry[len(YAML_REMOVE):]]
+            elif (type(entry) == str) and entry.startswith(YAML_PATCH):
+                # ignore
+                pass
+            else:
+                l.append(entry)
 
     return l
 
@@ -434,28 +440,29 @@ def patch_dict(orig, patch):
         d = orig.copy()
 
     for key, value in patch.items():
-        if key.startswith(YAML_REMOVE):
-            tmp_key = key[len(YAML_REMOVE):]
-            d.pop(tmp_key, None)
-        elif value == YAML_REMOVE:
-            d.pop(key, None)
-        elif key == YAML_PATCH:
-            # ignore
-            pass
-        elif key.startswith(YAML_PATCH) and (type(value) == dict):
-            tmp_key = key[len(YAML_PATCH):]
-            orig = None
-            if (tmp_key in d) and (type(d[tmp_key]) == dict):
-                orig = d[tmp_key]
-            d[tmp_key] = patch_dict(orig, value)
-        elif key.startswith(YAML_PATCH) and (type(value) == list):
-            tmp_key = key[len(YAML_PATCH):]
-            orig = None
-            if (tmp_key in d) and (type(d[tmp_key]) == list):
-                orig = d[tmp_key]
-            d[tmp_key] = patch_list(orig, value)
-        else:
-            d[key] = value
+        if value != None:
+            if key.startswith(YAML_REMOVE):
+                tmp_key = key[len(YAML_REMOVE):]
+                d.pop(tmp_key, None)
+            elif value == YAML_REMOVE:
+                d.pop(key, None)
+            elif key == YAML_PATCH:
+                # ignore
+                pass
+            elif key.startswith(YAML_PATCH) and (type(value) == dict):
+                tmp_key = key[len(YAML_PATCH):]
+                orig = None
+                if (tmp_key in d) and (type(d[tmp_key]) == dict):
+                    orig = d[tmp_key]
+                d[tmp_key] = patch_dict(orig, value)
+            elif key.startswith(YAML_PATCH) and (type(value) == list):
+                tmp_key = key[len(YAML_PATCH):]
+                orig = None
+                if (tmp_key in d) and (type(d[tmp_key]) == list):
+                    orig = d[tmp_key]
+                d[tmp_key] = patch_list(orig, value)
+            else:
+                d[key] = value
 
     return d
 
@@ -464,8 +471,7 @@ def main():
 
     # parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Compiles .tex files to PDFs using LuaLaTeX',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description='Compiles .tex files to PDFs using LuaLaTeX'
     )
     parser.add_argument(
         'file',
@@ -474,8 +480,7 @@ def main():
     )
     parser.add_argument(
         '--log', '-l',
-        type=argparse.FileType('w'),
-        default='autotex.log',
+        type=str,
         help='Log file'
     )
     parser.add_argument(
@@ -487,13 +492,11 @@ def main():
     parser.add_argument(
         '--state', '-s',
         type=str,
-        default='.autotex.state',
         help='File that stores the serialized state of autotex'
     )
     parser.add_argument(
         '-verbose', '-v',
         action='store_true',
-        default=False,
         help='verbose output'
     )
     args = parser.parse_args()
@@ -508,7 +511,7 @@ def main():
     finally:
         if cf:
             cf.close()
-    config.update(vars(args))
+    config = patch_dict(config, vars(args))
 
     actions = set()
 
