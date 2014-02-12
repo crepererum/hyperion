@@ -218,7 +218,7 @@ class CommandAction(Action):
                         cmd.add_dependency(a)
                         result.append(cmd)
 
-        print("\bOK")
+        print('\bOK(' + str(status) + ')')
         return result
 
 class IndexAction(CommandAction):
