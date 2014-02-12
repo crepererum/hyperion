@@ -123,7 +123,7 @@ class FileAction(Action):
             f = open(self.path, 'rb')
             checksum = hashlib.sha256(f.read()).digest()
             f.close()
-            return str(binascii.hexlify(checksum))
+            return str(binascii.hexlify(checksum), 'utf8')
         except IOError:
             return None
 
