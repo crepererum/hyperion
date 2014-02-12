@@ -44,16 +44,24 @@ class Action:
         for x in self.influences:
             influences.append(x._id)
 
+        state = self.__dict__.copy()
+        del state['_id']
+        del state['deps']
+        del state['influences']
+
         return {
             'id': self._id,
-            'type': 'Action',
+            'type': type(self).__name__,
             'deps': deps,
             'influences': influences,
-            'dirty': self.dirty
+            'state': state
         }
 
-    def from_json(j):
-        return Action()
+
+    def from_json(self, j):
+        self.__dict__ = j['state']
+        self.deps = set()
+        self.influences = set()
 
     def add_dependency(self, other):
         self.deps.add(other)
@@ -101,18 +109,6 @@ class FileAction(Action):
     def __str__(self):
         return 'watch "' + self.path + '"'
 
-    def to_json(self):
-        j = super().to_json()
-        j['type'] = 'FileAction'
-        j['path'] = self.path
-        j['checksum'] = self.checksum
-        return j
-
-    def from_json(j):
-        return FileAction(
-            path=j['path'],
-            checksum=j['checksum'])
-
     def needs_update(self):
         return super().needs_update() or (self.checksum != self.calc_file_checksum())
 
@@ -150,15 +146,6 @@ class CommandAction(Action):
 
     def __str__(self):
         return self.command
-
-    def to_json(self):
-        j = super().to_json()
-        j['type'] = 'CommandAction'
-        j['command'] = self.command
-        return j
-
-    def from_json(j):
-        return CommandAction(command=j['command'])
 
     def update(self):
         super().update()
@@ -239,15 +226,6 @@ class IndexAction(CommandAction):
         self.path = path
         out = self.path.replace('.idx', '.ind')
         super().__init__('makeindex -s gind.ist -o ' + out + ' ' + self.path)
-
-    def to_json(self):
-        j = super().to_json()
-        j['type'] = 'IndexAction'
-        j['path'] = self.path
-        return j
-
-    def from_json(j):
-        return IndexAction(path=j['path'])
 
 class MyEncoder(json.JSONEncoder):
     def default(self, o):
@@ -348,7 +326,10 @@ def decode_json(f):
     a = json.load(f)
     table = {}
     for j in a:
-        table[j['id']] = globals()[j['type']].from_json(j)
+        t = globals()[j['type']]
+        obj = t.__new__(t)
+        obj.from_json(j)
+        table[j['id']] = obj
 
     result = set()
     for j in a:
@@ -403,8 +384,8 @@ def main():
     try:
         sf = open(config['state'], 'r')
         actions = decode_json(sf)
+        print('State restored from file')
     except Exception:
-        exit(22)
         if config['file']:
             a1 = FileAction(config['file'])
             a2 = CommandAction('lualatex -pdf ' + config['file'])
