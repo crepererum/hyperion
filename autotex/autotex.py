@@ -150,7 +150,7 @@ class CommandAction(Action):
 
     def update(self):
         super().update()
-        tfname = config['tmpdir'].name + '/trace.log'
+        tfname = config['tmpdir'] + '/trace.log'
         cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
 
         # run child process and redirect output
@@ -222,7 +222,7 @@ class CommandAction(Action):
         print('\bOK(' + str(status) + ')')
         return result
 
-class IndexAction(CommandAction):
+class TexIndexAction(CommandAction):
     def __init__(self, path, out, style):
         self.path = path
         self.out = out
@@ -291,7 +291,7 @@ config = {
             'auto': False
         },
         r"\.idx$": {
-            'type': 'IndexAction',
+            'type': 'TexIndexAction',
             'args': {
                 'path': '?p',
                 'style': 'gind.ist',
@@ -304,7 +304,7 @@ config = {
         r"\.log$",
         r"\.pdf$"
     ],
-    'tmpdir': tempfile.TemporaryDirectory()
+    'tmpdir': tempfile.TemporaryDirectory().name
 }
 
 ################################################################################
@@ -350,12 +350,13 @@ def detect_command(path, auto_only=True):
             s_dir, s_basename = os.path.split(path)
             for key, value in args.items():
                 if type(value) == str:
+                    value = value.replace('??', '\0')
                     value = value.replace('?p', s_path)
                     value = value.replace('?w', s_woext)
                     value = value.replace('?e', s_ext)
                     value = value.replace('?d', s_dir)
                     value = value.replace('?b', s_basename)
-                    value = value.replace('??', '?')
+                    value = value.replace('\0', '?')
                     args[key] = value
 
             # construct Action object
