@@ -2,13 +2,16 @@
 
 import argparse
 import binascii
+import fcntl
 import hashlib
 import json
 import os
 import os.path
 import re
 import subprocess
+import sys
 import tempfile
+import time
 
 ################################################################################
 ################### HELPER LIBS ################################################
@@ -158,10 +161,55 @@ class CommandAction(Action):
 
     def update(self):
         super().update()
-
         tfname = tmpdir.name + '/trace.log'
-        status = subprocess.call(TRACE_CMD + ' ' + tfname + ' ' + self.command, shell=True)
+        cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
 
+        # run child process and redirect output
+        print(self.command + ': -', end='')
+        sys.stdout.flush()
+        child = subprocess.Popen(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
+        fcntl.fcntl(child.stdout, fcntl.F_SETFL, os.O_NONBLOCK)
+        fcntl.fcntl(child.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
+        status = None
+        counter = 0
+        while status == None:
+            s = child.poll()
+            out = child.stdout.read(1)
+            err = child.stderr.read(1)
+            if (s != None) and (out == '') and (err == ''):
+                status = s
+
+            changed = False
+            if out != '':
+                config['log'].write(out)
+                config['log'].flush()
+                changed = True
+            if err != '':
+                config['log'].write(err)
+                config['log'].flush()
+                changed = True
+
+            if changed:
+                counter = (counter + 1) % 4
+                if counter == 0:
+                    print('\b-', end='')
+                elif counter == 1:
+                    print('\b/', end='')
+                elif counter == 2:
+                    print('\b|', end='')
+                elif counter == 3:
+                    print('\b\\', end='')
+                sys.stdout.flush()
+            else:
+                time.sleep(0.5)
+
+        # get and analyze trace log
         f = open(tfname)
         targets = analyze_trace(f)
         f.close()
@@ -182,6 +230,7 @@ class CommandAction(Action):
                         cmd.add_dependency(a)
                         result.append(cmd)
 
+        print("\bOK")
         return result
 
 class IndexAction(CommandAction):
@@ -251,6 +300,7 @@ TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
 ################### GLOBALS ####################################################
 ################################################################################
 basedir = os.path.abspath(os.getcwd())
+config = {}
 tmpdir = tempfile.TemporaryDirectory()
 
 ################################################################################
@@ -324,31 +374,38 @@ def main():
         help='.tex file'
     )
     parser.add_argument(
+        '--log', '-l',
+        type=argparse.FileType('w'),
+        default='autotex.log',
+        help='Log file'
+    )
+    parser.add_argument(
         '--state', '-s',
         type=str,
         default='.autotex.state',
         help='File that stores the serialized state of autotex'
     )
     parser.add_argument(
-        '-v',
+        '-verbose', '-v',
         action='store_true',
         default=False,
         help='verbose output'
     )
     args = parser.parse_args()
+    config.update(vars(args))
 
     actions = set()
 
     # try to restore state
     sf = None
     try:
-        sf = open(args.state, 'r')
+        sf = open(config['state'], 'r')
         actions = decode_json(sf)
     except Exception:
         exit(22)
-        if args.file:
-            a1 = FileAction(args.file)
-            a2 = CommandAction('lualatex -pdf ' + args.file)
+        if config['file']:
+            a1 = FileAction(config['file'])
+            a2 = CommandAction('lualatex -pdf ' + config['file'])
             a2.add_dependency(a1)
             actions.add(a1)
             actions.add(a2)
@@ -376,14 +433,15 @@ def main():
             else:
                 actions.add(n)
 
-        print()
-        print("Tracked commands:")
-        for a in actions:
-            print(str(a))
-        print()
+        if config['verbose']:
+            print()
+            print("Tracked commands:")
+            for a in actions:
+                print(str(a))
+            print()
 
     # safe state
-    sf = open(args.state, 'w')
+    sf = open(config['state'], 'w')
     json.dump(actions, sf, cls=MyEncoder, indent=4)
     sf.close()
 
