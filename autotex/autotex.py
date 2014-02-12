@@ -311,6 +311,7 @@ config = {
         r"\.pdf$"
     ],
     'log': 'autotex.log',
+    'max_rounds': 10,
     'state': '.autotex.state',
     'tmpdir': _tmpdir.name,
     'verbose': False
@@ -503,6 +504,7 @@ def main():
     parser.add_argument(
         '-verbose', '-v',
         action='store_true',
+        default=None,
         help='verbose output'
     )
     args = parser.parse_args()
@@ -550,6 +552,7 @@ def main():
 
     # main loop (fixpoint iteration)
     changed = True
+    rounds = 0
     while changed:
         changed = False
         novel = set()
@@ -579,6 +582,11 @@ def main():
             for a in actions:
                 print(str(a))
             print()
+
+        rounds = rounds + 1
+        if (config['max_rounds'] != 0) and (rounds > config['max_rounds']):
+            print('Error: Reached maximum number of rounds!')
+            exit(1)
 
 if __name__ == '__main__':
     main()
