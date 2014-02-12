@@ -208,7 +208,7 @@ class CommandAction(Action):
                     print('\b\\', end='')
                 sys.stdout.flush()
             else:
-                time.sleep(0.5)
+                time.sleep(0.05)
 
         # get and analyze trace log
         f = open(tfname)
