@@ -162,7 +162,7 @@ class CommandAction(Action):
 
     def update(self):
         super().update()
-        tfname = tmpdir.name + '/trace.log'
+        tfname = config['tmpdir'].name + '/trace.log'
         cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
 
         # run child process and redirect output
@@ -267,15 +267,6 @@ class MyEncoder(json.JSONEncoder):
 ################################################################################
 ################### CONSTANTS ##################################################
 ################################################################################
-COMMAND_MAP = {
-    '.idx': IndexAction
-}
-
-FILEACTION_BLACKLIST = [
-    '.log',
-    '.pdf'
-]
-
 RE_TRACELINE = re.compile(r"""
     ^
     \d+                    # PID (dropped)
@@ -300,24 +291,34 @@ TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
 ################################################################################
 ################### GLOBALS ####################################################
 ################################################################################
-basedir = os.path.abspath(os.getcwd())
-config = {}
-tmpdir = tempfile.TemporaryDirectory()
+config = {
+    'basedir': os.path.abspath(os.getcwd()),
+    'command_map': {
+        '.idx': 'IndexAction'
+    },
+    'file_blacklist': [
+        '.log',
+        '.pdf'
+    ],
+    'tmpdir': tempfile.TemporaryDirectory()
+}
 
 ################################################################################
 ################### ORPHAN METHODS #############################################
 ################################################################################
 def file_blacklisted(path):
-    for ext in FILEACTION_BLACKLIST:
+    for ext in config['file_blacklist']:
         if path.endswith(ext):
             return True
 
     return False
 
 def detect_command(path):
-    for ext, Cmd in COMMAND_MAP.items():
+    for ext, cmd in config['command_map'].items():
         if path.endswith(ext):
-            return Cmd(path)
+            return globals()[cmd](
+                path=path
+            )
     return None
 
 def analyze_trace(f):
@@ -338,7 +339,7 @@ def analyze_trace(f):
                 target = os.path.abspath(args[TARGET_MAP[func]].replace('"', ''))
 
                 # is this a local file?
-                if os.path.commonprefix([basedir, target]) == basedir:
+                if os.path.commonprefix([config['basedir'], target]) == config['basedir']:
                     targets.add(os.path.relpath(target))
 
     return targets
