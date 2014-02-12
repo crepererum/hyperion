@@ -273,7 +273,7 @@ TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
 config = {
     'basedir': os.path.abspath(os.getcwd()),
     'command_map': {
-        '.idx': {
+        r"\.idx$": {
             'type': 'IndexAction',
             'args': {
                 'path': '%p',
@@ -283,8 +283,8 @@ config = {
         }
     },
     'file_blacklist': [
-        '.log',
-        '.pdf'
+        r"\.log$",
+        r"\.pdf$"
     ],
     'tmpdir': tempfile.TemporaryDirectory()
 }
@@ -294,14 +294,14 @@ config = {
 ################################################################################
 def file_blacklisted(path):
     for ext in config['file_blacklist']:
-        if path.endswith(ext):
+        if re.search(ext, path):
             return True
 
     return False
 
 def detect_command(path):
     for ext, cmd in config['command_map'].items():
-        if path.endswith(ext):
+        if re.search(ext, path):
             # get action and args
             t = globals()[cmd['type']]
             args = {}
