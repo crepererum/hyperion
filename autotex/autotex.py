@@ -260,10 +260,16 @@ RE_TRACELINE = re.compile(r"""
     """, re.VERBOSE)
 
 TARGET_MAP = {
-    'access': 0,
-    'open': 0,
-    'openat': 1,
-    'stat': 0
+    'access':    0,
+    'execve':    0,
+    'getcwd':    0,
+    'lstat':     0,
+    'mkdir':     0,
+    'open':      0,
+    'openat':    1,
+    'readlink':  0,
+    'stat':      0,
+    'unlink':    0
 }
 
 TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
