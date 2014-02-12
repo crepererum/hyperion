@@ -222,10 +222,11 @@ class CommandAction(Action):
         return result
 
 class IndexAction(CommandAction):
-    def __init__(self, path):
+    def __init__(self, path, out, style):
         self.path = path
-        out = self.path.replace('.idx', '.ind')
-        super().__init__('makeindex -s gind.ist -o ' + out + ' ' + self.path)
+        self.out = out
+        self.style = style
+        super().__init__('makeindex -s ' + self.style + ' -o ' + self.out + ' ' + self.path)
 
 class MyEncoder(json.JSONEncoder):
     def default(self, o):
@@ -272,7 +273,14 @@ TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
 config = {
     'basedir': os.path.abspath(os.getcwd()),
     'command_map': {
-        '.idx': 'IndexAction'
+        '.idx': {
+            'type': 'IndexAction',
+            'args': {
+                'path': '%p',
+                'style': 'gind.ist',
+                'out': '%w.ind'
+            }
+        }
     },
     'file_blacklist': [
         '.log',
@@ -294,9 +302,27 @@ def file_blacklisted(path):
 def detect_command(path):
     for ext, cmd in config['command_map'].items():
         if path.endswith(ext):
-            return globals()[cmd](
-                path=path
-            )
+            # get action and args
+            t = globals()[cmd['type']]
+            args = {}
+            if 'args' in cmd:
+                args = cmd['args']
+
+            # substitute string arguments
+            s_path = path
+            s_woext, s_ext = os.path.splitext(path)
+            s_dir, s_basename = os.path.split(path)
+            for key, value in args.items():
+                if type(value) == str:
+                    value = value.replace('%p', s_path)
+                    value = value.replace('%w', s_woext)
+                    value = value.replace('%e', s_ext)
+                    value = value.replace('%d', s_dir)
+                    value = value.replace('%b', s_basename)
+                    args[key] = value
+
+            # construct Action object
+            return t(**args)
     return None
 
 def analyze_trace(f):
