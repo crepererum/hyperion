@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import yaml
 
 ################################################################################
 ################### HELPER LIBS ################################################
@@ -267,6 +268,9 @@ TARGET_MAP = {
 
 TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
 
+YAML_PATCH = '?+'
+YAML_REMOVE = '?-'
+
 ################################################################################
 ################### GLOBALS ####################################################
 ################################################################################
@@ -276,16 +280,16 @@ config = {
         r"\.(dtx)|(tex)$": {
             'type': 'CommandAction',
             'args': {
-                'command': 'lualatex -pdf %p'
+                'command': 'lualatex -pdf ?p'
             },
             'auto': False
         },
         r"\.idx$": {
             'type': 'IndexAction',
             'args': {
-                'path': '%p',
+                'path': '?p',
                 'style': 'gind.ist',
-                'out': '%w.ind'
+                'out': '?w.ind'
             },
             'auto': True
         }
@@ -340,11 +344,12 @@ def detect_command(path, auto_only=True):
             s_dir, s_basename = os.path.split(path)
             for key, value in args.items():
                 if type(value) == str:
-                    value = value.replace('%p', s_path)
-                    value = value.replace('%w', s_woext)
-                    value = value.replace('%e', s_ext)
-                    value = value.replace('%d', s_dir)
-                    value = value.replace('%b', s_basename)
+                    value = value.replace('?p', s_path)
+                    value = value.replace('?w', s_woext)
+                    value = value.replace('?e', s_ext)
+                    value = value.replace('?d', s_dir)
+                    value = value.replace('?b', s_basename)
+                    value = value.replace('??', '?')
                     args[key] = value
 
             # construct Action object
@@ -397,7 +402,56 @@ def decode_json(f):
 
     return result
 
+def patch_list(orig, patch):
+    l = []
+    if orig:
+        l = orig.copy()
+
+    for entry in patch:
+        if (type(entry) == str) and entry.startswith(YAML_REMOVE):
+            l = [x for x in l if x != entry[len(YAML_REMOVE):]]
+        elif (type(entry) == str) and entry.startswith(YAML_PATCH):
+            # ignore
+            pass
+        else:
+            l.append(entry)
+
+    return l
+
+def patch_dict(orig, patch):
+    d = {}
+    if orig:
+        d = orig.copy()
+
+    for key, value in patch.items():
+        if key.startswith(YAML_REMOVE):
+            tmp_key = key[len(YAML_REMOVE):]
+            d.pop(tmp_key, None)
+        elif value == YAML_REMOVE:
+            d.pop(key, None)
+        elif key == YAML_PATCH:
+            # ignore
+            pass
+        elif key.startswith(YAML_PATCH) and (type(value) == dict):
+            tmp_key = key[len(YAML_PATCH):]
+            orig = None
+            if (tmp_key in d) and (type(d[tmp_key]) == dict):
+                orig = d[tmp_key]
+            d[tmp_key] = patch_dict(orig, value)
+        elif key.startswith(YAML_PATCH) and (type(value) == list):
+            tmp_key = key[len(YAML_PATCH):]
+            orig = None
+            if (tmp_key in d) and (type(d[tmp_key]) == list):
+                orig = d[tmp_key]
+            d[tmp_key] = patch_list(orig, value)
+        else:
+            d[key] = value
+
+    return d
+
 def main():
+    global config
+
     # parse command line arguments
     parser = argparse.ArgumentParser(
         description='Compiles .tex files to PDFs using LuaLaTeX',
@@ -415,6 +469,12 @@ def main():
         help='Log file'
     )
     parser.add_argument(
+        '--config', '-c',
+        type=str,
+        default='.autotexrc',
+        help='Config file (YAML)'
+    )
+    parser.add_argument(
         '--state', '-s',
         type=str,
         default='.autotex.state',
@@ -427,6 +487,17 @@ def main():
         help='verbose output'
     )
     args = parser.parse_args()
+
+    # generate config
+    cf = None
+    try:
+        cf = open(args.config)
+        config = patch_dict(config, yaml.load(cf.read()))
+    except Exception as e:
+        pass
+    finally:
+        if cf:
+            cf.close()
     config.update(vars(args))
 
     actions = set()
