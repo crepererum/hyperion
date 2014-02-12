@@ -286,6 +286,7 @@ YAML_REMOVE = '?-'
 _tmpdir = tempfile.TemporaryDirectory()
 
 config = {
+    'append_log': False,
     'basedir': os.path.abspath(os.getcwd()),
     'command_map': {
         r"\.(dtx)|(tex)$": {
@@ -484,6 +485,11 @@ def main():
         help='Log file'
     )
     parser.add_argument(
+        '--append_log',
+        action='store_true',
+        help='Append new entries to log file'
+    )
+    parser.add_argument(
         '--config', '-c',
         type=str,
         default='.autotexrc',
@@ -513,9 +519,13 @@ def main():
             cf.close()
     config = patch_dict(config, vars(args))
 
-    actions = set()
+    # clear log?
+    if not config['append_log']:
+        flog = open(config['log'], 'w')
+        flog.close()
 
     # try to restore state
+    actions = set()
     sf = None
     try:
         sf = open(config['state'], 'r')
