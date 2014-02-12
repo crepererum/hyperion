@@ -8,6 +8,7 @@ import json
 import os
 import os.path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -433,17 +434,20 @@ def main():
             else:
                 actions.add(n)
 
+        # safe state
+        if changed:
+            state_tmp = config['state'] + '.new'
+            sf = open(state_tmp, 'w')
+            json.dump(actions, sf, cls=MyEncoder, indent=4)
+            sf.close()
+            shutil.move(state_tmp, config['state'])
+
         if config['verbose']:
             print()
             print("Tracked commands:")
             for a in actions:
                 print(str(a))
             print()
-
-    # safe state
-    sf = open(config['state'], 'w')
-    json.dump(actions, sf, cls=MyEncoder, indent=4)
-    sf.close()
 
 if __name__ == '__main__':
     main()
