@@ -273,13 +273,21 @@ TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
 config = {
     'basedir': os.path.abspath(os.getcwd()),
     'command_map': {
+        r"\.(dtx)|(tex)$": {
+            'type': 'CommandAction',
+            'args': {
+                'command': 'lualatex -pdf %p'
+            },
+            'auto': False
+        },
         r"\.idx$": {
             'type': 'IndexAction',
             'args': {
                 'path': '%p',
                 'style': 'gind.ist',
                 'out': '%w.ind'
-            }
+            },
+            'auto': True
         }
     },
     'file_blacklist': [
@@ -299,9 +307,27 @@ def file_blacklisted(path):
 
     return False
 
-def detect_command(path):
+def detect_command(path, auto_only=True):
     for ext, cmd in config['command_map'].items():
+        # auto filter
+        ok_auto = None
+        if auto_only:
+            if ('auto' in cmd) and (cmd['auto'] == True):
+                ok_auto = True
+            else:
+                ok_auto = False
+        else:
+            ok_auto = True
+
+        # path filter
+        ok_path = None
         if re.search(ext, path):
+            ok_path = True
+        else:
+            ok_path = False
+
+        # shoot if ok
+        if ok_auto and ok_path:
             # get action and args
             t = globals()[cmd['type']]
             args = {}
@@ -414,7 +440,10 @@ def main():
     except Exception:
         if config['file']:
             a1 = FileAction(config['file'])
-            a2 = CommandAction('lualatex -pdf ' + config['file'])
+            a2 = detect_command(config['file'], False)
+            if not a2:
+                print('Error: no matching action for this file!')
+                exit(1)
             a2.add_dependency(a1)
             actions.add(a1)
             actions.add(a2)
