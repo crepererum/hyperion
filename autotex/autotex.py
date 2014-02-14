@@ -129,13 +129,14 @@ class FileAction(Action):
             return None
 
 class CommandAction(Action):
-    def __init__(self, command):
+    def __init__(self, command, ignores=[]):
         super().__init__()
         self.command = command
+        self.ignores = ignores
 
     def __eq__(self, other):
         if isinstance(other, CommandAction):
-            return self.command == other.command
+            return (self.command == other.command) and (self.ignores == other.ignores)
         else:
             return False
 
@@ -207,7 +208,7 @@ class CommandAction(Action):
         # generate new actions and deps
         result = []
         for path in targets:
-            if not file_blacklisted(path):
+            if not self.file_ignored(path):
                 fa = FileAction(path)
 
                 if not fa in self.deps:
@@ -225,10 +226,20 @@ class CommandAction(Action):
         print('\bOK(' + str(status) + ')')
         return result
 
+    def file_ignored(self, path):
+        for ext in self.ignores:
+            if re.search(ext, path):
+                return True
+
+        return False
+
 class TexBibAction(CommandAction):
     def __init__(self, path):
         self.path = path
-        super().__init__('biber ' + self.path)
+        super().__init__(
+            command='biber ' + self.path,
+            ignores=[r"\.blg$"]
+        )
 
 class TexCompileAction(CommandAction):
     def __init__(self, path, engine='luatex', latex=True, format='pdf'):
@@ -283,7 +294,10 @@ class TexCompileAction(CommandAction):
 
         cmd = cmd + ' ' + self.path
 
-        super().__init__(cmd)
+        super().__init__(
+            command=cmd,
+            ignores=[r"\.log$", r"\.pdf$"]
+        )
 
 class TexIndexAction(CommandAction):
     def __init__(self, path, out, style):
@@ -357,7 +371,7 @@ config = {
             },
             'auto': True
         },
-        r"\.(dtx)|(tex)$": {
+        r"\.(ins)|(dtx)|(tex)$": {
             'type': 'TexCompileAction',
             'args': {
                 'path': '?p'
@@ -374,10 +388,6 @@ config = {
             'auto': True
         }
     },
-    'file_blacklist': [
-        r"\.log$",
-        r"\.pdf$"
-    ],
     'log': 'autotex.log',
     'max_rounds': 10,
     'state': '.autotex.state',
@@ -388,13 +398,6 @@ config = {
 ################################################################################
 ################### ORPHAN METHODS #############################################
 ################################################################################
-def file_blacklisted(path):
-    for ext in config['file_blacklist']:
-        if re.search(ext, path):
-            return True
-
-    return False
-
 def detect_actions(path, auto_only=True):
     actions = []
 
