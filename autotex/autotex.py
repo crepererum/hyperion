@@ -426,7 +426,7 @@ def detect_actions(path, auto_only=True):
             t = globals()[cmd['type']]
             args = {}
             if 'args' in cmd:
-                args = cmd['args']
+                args = cmd['args'].copy()
 
             # substitute string arguments
             s_path = path
@@ -551,9 +551,9 @@ def main():
         description='Compiles .tex files to PDFs using LuaLaTeX'
     )
     parser.add_argument(
-        'file',
-        nargs='?',
-        help='.tex file'
+        'files',
+        nargs='*',
+        help='initial processed filed'
     )
     parser.add_argument(
         '--log', '-l',
@@ -583,6 +583,8 @@ def main():
         help='verbose output'
     )
     args = parser.parse_args()
+    if not args.files:
+        args.files = None
 
     # generate config
     cf = None
@@ -601,7 +603,7 @@ def main():
         flog = open(config['log'], 'w')
         flog.close()
 
-    # try to restore state
+    # try to restore or initialize state
     actions = set()
     sf = None
     try:
@@ -609,16 +611,19 @@ def main():
         actions = decode_json(sf)
         print('State restored from file')
     except Exception:
-        if config['file']:
-            fa = FileAction(config['file'])
-            ta = detect_actions(config['file'], False)
-            if not ta:
+        if config['files']:
+            for f in config['files']:
+                fa = FileAction(f)
+                ta = detect_actions(f, False)
+                if ta:
+                    for a in ta:
+                        a.add_dependency(fa)
+                    actions.add(fa)
+                    actions.update(ta)
+
+            if not actions:
                 print('Error: no matching action for this file!')
                 exit(1)
-            for a in ta:
-                a.add_dependency(fa)
-            actions.add(fa)
-            actions.update(ta)
         else:
             parser.print_usage()
             exit(1)
@@ -631,11 +636,11 @@ def main():
     rounds = 0
     while changed:
         changed = False
-        novel = set()
+        novel = []
 
         for a in actions:
             if a.needs_update():
-                novel.update(a.update())
+                novel.extend(a.update())
                 changed = True
 
         for n in novel:
