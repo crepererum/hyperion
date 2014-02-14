@@ -208,21 +208,82 @@ class CommandAction(Action):
         result = []
         for path in targets:
             if not file_blacklisted(path):
-                a = FileAction(path)
+                fa = FileAction(path)
 
-                if not a in self.deps:
-                    self.add_dependency(a)
-                    result.append(a)
+                if not fa in self.deps:
+                    self.add_dependency(fa)
+                    result.append(fa)
 
                     # some files results in new commands
-                    cmd = detect_command(path)
-                    if cmd:
-                        cmd.add_dependency(a)
-                        result.append(cmd)
+                    actions = detect_actions(path)
+                    if actions:
+                        for a in actions:
+                            a.add_dependency(fa)
+                        result.extend(actions)
 
         flog.close()
         print('\bOK(' + str(status) + ')')
         return result
+
+class TexBibAction(CommandAction):
+    def __init__(self, path):
+        self.path = path
+        super().__init__('biber ' + self.path)
+
+class TexCompileAction(CommandAction):
+    def __init__(self, path, engine='luatex', latex=True, format='pdf'):
+        self.path = path
+        self.engine = engine.lower()
+        self.latex = latex
+        self.format = format.lower()
+
+        cmd = ''
+        if self.engine == 'luatex':
+            if self.latex:
+                cmd = 'lualatex'
+            else:
+                cmd = 'luatex'
+
+            cmd = cmd + ' --file-line-error --interaction=batchmode'
+
+            if self.format in ['dvi', 'pdf']:
+                cmd = cmd + ' --output-format=' + self.format
+            else:
+                raise Exception('Format(' + self.format + ') is not supported by LuaTeX!')
+        elif self.engine == 'xetex':
+            if self.latex:
+                cmd = 'xelatex'
+            else:
+                cmd = 'xetex'
+
+            cmd = cmd + ' -file-line-error -interaction=batchmode'
+
+            if self.format == 'pdf':
+                pass
+            elif self.format == 'xdv':
+                cmd = cmd + ' -no-pdf'
+            else:
+                raise Exception('Format(' + self.format + ') is not supported by XeTeX!')
+        elif self.engine == 'pdftex':
+            if self.format == 'pdf':
+                cmd = 'pdf'
+            elif self.format == 'dvi':
+                cmd = ''
+            else:
+                raise Exception('Format(' + self.format + ') is not supported by pdfTeX!')
+
+            if self.latex:
+                cmd = cmd + 'latex'
+            else:
+                cmd = cmd + 'tex'
+
+            cmd = cmd + ' -file-line-error -interaction=batchmode'
+        else:
+            raise Exception('Unsupported engine(' + self.engine + ')!')
+
+        cmd = cmd + ' ' + self.path
+
+        super().__init__(cmd)
 
 class TexIndexAction(CommandAction):
     def __init__(self, path, out, style):
@@ -289,10 +350,17 @@ config = {
     'append_log': False,
     'basedir': os.path.abspath(os.getcwd()),
     'command_map': {
-        r"\.(dtx)|(tex)$": {
-            'type': 'CommandAction',
+        r"\.bcf": {
+            'type': 'TexBibAction',
             'args': {
-                'command': 'lualatex -pdf ?p'
+                'path': '?p'
+            },
+            'auto': True
+        },
+        r"\.(dtx)|(tex)$": {
+            'type': 'TexCompileAction',
+            'args': {
+                'path': '?p'
             },
             'auto': False
         },
@@ -327,7 +395,10 @@ def file_blacklisted(path):
 
     return False
 
-def detect_command(path, auto_only=True):
+def detect_actions(path, auto_only=True):
+    actions = []
+
+    # find all matching commands
     for ext, cmd in config['command_map'].items():
         # auto filter
         ok_auto = None
@@ -370,8 +441,9 @@ def detect_command(path, auto_only=True):
                     args[key] = value
 
             # construct Action object
-            return t(**args)
-    return None
+            actions.append(t(**args))
+
+    return actions
 
 def analyze_trace(f):
     targets = set()
@@ -535,14 +607,15 @@ def main():
         print('State restored from file')
     except Exception:
         if config['file']:
-            a1 = FileAction(config['file'])
-            a2 = detect_command(config['file'], False)
-            if not a2:
+            fa = FileAction(config['file'])
+            ta = detect_actions(config['file'], False)
+            if not ta:
                 print('Error: no matching action for this file!')
                 exit(1)
-            a2.add_dependency(a1)
-            actions.add(a1)
-            actions.add(a2)
+            for a in ta:
+                a.add_dependency(fa)
+            actions.add(fa)
+            actions.update(ta)
         else:
             parser.print_usage()
             exit(1)
