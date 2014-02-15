@@ -229,7 +229,10 @@ class CommandAction(Action):
                         result.extend(actions)
 
         flog.close()
-        print('\bOK(' + str(status) + ')')
+        if status == 0:
+            print('\bOK')
+        else:
+            print('\bFAILED(' + str(status) + ')')
         super().update()
         return result
 
