@@ -127,7 +127,7 @@ class FileAction(Action):
             f.close()
             return str(binascii.hexlify(checksum), 'utf8')
         except IOError:
-            return None
+            return '0'
 
 class CommandAction(Action):
     def __init__(self, command, ignores=[]):
