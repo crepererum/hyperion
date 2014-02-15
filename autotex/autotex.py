@@ -9,6 +9,7 @@ import os
 import os.path
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -114,9 +115,9 @@ class FileAction(Action):
         return super().needs_update() or (self.checksum != self.calc_file_checksum())
 
     def update(self):
-        super().update()
         self.checksum = self.calc_file_checksum()
         print('File changed: "' + self.path + '" (Checksum=' + self.checksum + ')')
+        super().update()
         return []
 
     def calc_file_checksum(self):
@@ -150,55 +151,60 @@ class CommandAction(Action):
         return self.command
 
     def update(self):
-        super().update()
-        tfname = config['tmpdir'] + '/trace.log'
-        cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
-
         # run child process and redirect output
         print(self.command + ': -', end='')
+        tfname = config['tmpdir'] + '/trace.log'
+        cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
         sys.stdout.flush()
-        child = subprocess.Popen(
-            cmd,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
-        )
-        fcntl.fcntl(child.stdout, fcntl.F_SETFL, os.O_NONBLOCK)
-        fcntl.fcntl(child.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
-        flog = open(config['log'], 'a')
+        child = None
         status = None
-        counter = 0
-        while status == None:
-            s = child.poll()
-            out = child.stdout.read(1)
-            err = child.stderr.read(1)
-            if (s != None) and (out == '') and (err == ''):
-                status = s
+        try:
+            child = subprocess.Popen(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+            fcntl.fcntl(child.stdout, fcntl.F_SETFL, os.O_NONBLOCK)
+            fcntl.fcntl(child.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
+            flog = open(config['log'], 'a')
+            counter = 0
+            while status == None:
+                s = child.poll()
+                out = child.stdout.read(1)
+                err = child.stderr.read(1)
+                if (s != None) and (out == '') and (err == ''):
+                    status = s
 
-            changed = False
-            if out != '':
-                flog.write(out)
-                flog.flush()
-                changed = True
-            if err != '':
-                flog.write(err)
-                flog.flush()
-                changed = True
+                changed = False
+                if out != '':
+                    flog.write(out)
+                    flog.flush()
+                    changed = True
+                if err != '':
+                    flog.write(err)
+                    flog.flush()
+                    changed = True
 
-            if changed:
-                counter = (counter + 1) % 4
-                if counter == 0:
-                    print('\b-', end='')
-                elif counter == 1:
-                    print('\b/', end='')
-                elif counter == 2:
-                    print('\b|', end='')
-                elif counter == 3:
-                    print('\b\\', end='')
-                sys.stdout.flush()
-            else:
-                time.sleep(0.05)
+                if changed:
+                    counter = (counter + 1) % 4
+                    if counter == 0:
+                        print('\b-', end='')
+                    elif counter == 1:
+                        print('\b/', end='')
+                    elif counter == 2:
+                        print('\b|', end='')
+                    elif counter == 3:
+                        print('\b\\', end='')
+                    sys.stdout.flush()
+                else:
+                    time.sleep(0.05)
+        except KeyboardInterrupt:
+            if child:
+                child.terminate()
+            raise
+
 
         # get and analyze trace log
         f = open(tfname)
@@ -224,6 +230,7 @@ class CommandAction(Action):
 
         flog.close()
         print('\bOK(' + str(status) + ')')
+        super().update()
         return result
 
     def file_ignored(self, path):
@@ -543,6 +550,49 @@ def patch_dict(orig, patch):
 
     return d
 
+def restore_state():
+    actions = None
+    sf = None
+    try:
+        sf = open(config['state'], 'r')
+        actions = decode_json(sf)
+        print('State restored from file')
+    except Exception:
+        pass
+    finally:
+        if sf:
+            sf.close()
+
+    return actions
+
+def initialize_state():
+    actions = set()
+    if config['files']:
+        for f in config['files']:
+            fa = FileAction(f)
+            ta = detect_actions(f, False)
+            if ta:
+                for a in ta:
+                    a.add_dependency(fa)
+                actions.add(fa)
+                actions.update(ta)
+
+        if not actions:
+            print('Error: no matching action for this file!')
+            exit(1)
+    else:
+        parser.print_usage()
+        exit(1)
+
+    return actions
+
+def save_state(actions):
+    state_tmp = config['state'] + '.new'
+    sf = open(state_tmp, 'w')
+    json.dump(actions, sf, cls=MyEncoder, indent=4)
+    sf.close()
+    shutil.move(state_tmp, config['state'])
+
 def main():
     global config
 
@@ -604,44 +654,28 @@ def main():
         flog.close()
 
     # try to restore or initialize state
-    actions = set()
-    sf = None
-    try:
-        sf = open(config['state'], 'r')
-        actions = decode_json(sf)
-        print('State restored from file')
-    except Exception:
-        if config['files']:
-            for f in config['files']:
-                fa = FileAction(f)
-                ta = detect_actions(f, False)
-                if ta:
-                    for a in ta:
-                        a.add_dependency(fa)
-                    actions.add(fa)
-                    actions.update(ta)
-
-            if not actions:
-                print('Error: no matching action for this file!')
-                exit(1)
-        else:
-            parser.print_usage()
-            exit(1)
-    finally:
-        if sf:
-            sf.close()
+    actions = restore_state()
+    if not actions:
+        actions = initialize_state()
 
     # main loop (fixpoint iteration)
     changed = True
     rounds = 0
-    while changed:
+    terminate = False
+    while changed and not terminate:
         changed = False
         novel = []
 
-        for a in actions:
-            if a.needs_update():
-                novel.extend(a.update())
-                changed = True
+        try:
+            for a in actions:
+                if a.needs_update():
+                    novel.extend(a.update())
+                    changed = True
+        except KeyboardInterrupt:
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+            print()
+            print('Interrupted')
+            terminate = True
 
         for n in novel:
             if n in actions:
@@ -651,11 +685,7 @@ def main():
 
         # safe state
         if changed:
-            state_tmp = config['state'] + '.new'
-            sf = open(state_tmp, 'w')
-            json.dump(actions, sf, cls=MyEncoder, indent=4)
-            sf.close()
-            shutil.move(state_tmp, config['state'])
+            save_state(actions)
 
         if config['verbose']:
             print()
@@ -665,7 +695,7 @@ def main():
             print()
 
         rounds = rounds + 1
-        if (config['max_rounds'] != 0) and (rounds > config['max_rounds']):
+        if (config['max_rounds'] != 0) and (rounds > config['max_rounds']) and not terminate:
             print('Error: Reached maximum number of rounds!')
             exit(1)
 
