@@ -5,6 +5,7 @@ import binascii
 import fcntl
 import hashlib
 import json
+import operator
 import os
 import os.path
 import re
@@ -80,6 +81,9 @@ class Action:
             i.deps.remove(other)
             i.deps.add(self)
 
+    def priority(self):
+        return 0
+
     def needs_update(self):
         return self.dirty
 
@@ -110,6 +114,9 @@ class FileAction(Action):
 
     def __str__(self):
         return 'watch "' + self.path + '"'
+
+    def priority(self):
+        return -100
 
     def needs_update(self):
         return super().needs_update() or (self.checksum != self.calc_file_checksum())
@@ -149,6 +156,9 @@ class CommandAction(Action):
 
     def __str__(self):
         return self.command
+
+    def priority(self):
+        return 100
 
     def update(self):
         # run child process and redirect output
@@ -667,24 +677,26 @@ def main():
     terminate = False
     while changed and not terminate:
         changed = False
-        novel = []
+        schedule = sorted([a for a in actions if a.needs_update()], key=operator.methodcaller('priority'))
 
         try:
-            for a in actions:
-                if a.needs_update():
-                    novel.extend(a.update())
-                    changed = True
+            # update actions
+            for a in schedule:
+                novel = a.update()
+
+                # merge new actions to existing ones
+                for n in novel:
+                    if n in actions:
+                        get_equivalent(actions, n).merge(n)
+                    else:
+                        actions.add(n)
+
+                changed = True
         except KeyboardInterrupt:
             signal.signal(signal.SIGINT, signal.SIG_IGN)
             print()
             print('Interrupted')
             terminate = True
-
-        for n in novel:
-            if n in actions:
-                get_equivalent(actions, n).merge(n)
-            else:
-                actions.add(n)
 
         # safe state
         if changed:
@@ -701,6 +713,8 @@ def main():
         if (config['max_rounds'] != 0) and (rounds > config['max_rounds']) and not terminate:
             print('Error: Reached maximum number of rounds!')
             exit(1)
+
+    print('done')
 
 if __name__ == '__main__':
     main()
