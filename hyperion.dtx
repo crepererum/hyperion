@@ -159,24 +159,23 @@ See http://www.luatex.org/}
 %     \toprule
 %     Name & Color & Usage \\
 %     \midrule
-%     \code{colcontrast} & \colorsquare{colcontrast} & Primary contrast color in graphics \\
-%     \code{colcontrast2} & \colorsquare{colcontrast2} & Second contrast color in graphics \\
-%     \code{colcontrast3} & \colorsquare{colcontrast3} & Third contrast color in graphics \\
-%     \code{colcontrast4} & \colorsquare{colcontrast4} & Forth contrast color in graphics \\
+%     \directlua{
+%         for index=0,9 do
+%             tex.print("\string\\code{cscontrast!!["..index.."]} & \string\\colorsquare{cscontrast!!["..index.."]} & "..index..". contrast color in graphics\string\\\string\\")
+%         end
+%     }
 %     \code{colcode} & \colorsquare{colcode} & Code, macros and variables \\
 %     \bottomrule
 % \end{tabularx}
 % \end{center}
 % \begin{macro}{\colorsquare}
-% Furthermore, there is a \code{\bs colorsquare} macro which is great for explaining colors in tables and captions. Example: \code{\bs colorsquare\{colcontrast\}} $=$ \colorsquare{colcontrast}
+% Furthermore, there is a \code{\bs colorsquare} macro which is great for explaining colors in tables and captions. Example: \code{\bs colorsquare\{cscontrast!!0\}} $=$ \colorsquare{cscontrast!!0}
 % \end{macro}
 %
 %    \begin{macrocode}
 \RequirePackage[table]{xcolor}% before: tikz
-\definecolor{colcontrast}{RGB}{40,100,40}
-\definecolor{colcontrast2}{RGB}{40,40,100}
-\definecolor{colcontrast3}{RGB}{80,20,80}
-\definecolor{colcontrast4}{RGB}{80,80,20}
+\definecolorseries{cscontrast}{rgb}{grad}[rgb]{.95,.85,.55}{3,11,17}
+\resetcolorseries[10]{cscontrast}
 \definecolor{colcode}{gray}{0.25}
 \newcommand{\colorsquare}[1]{\colorbox{#1}{\phantom{\texttt{X}}}}
 %    \end{macrocode}
