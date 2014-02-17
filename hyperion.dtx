@@ -184,12 +184,13 @@ See http://www.luatex.org/}
 %     \bottomrule
 % \end{tabularx}
 % \end{center}
+% All colors are emitted as CMYK, which is compatible to all used packages and well suited for printing.
 % \begin{macro}{\colorsquare}
 % Furthermore, there is a \code{\bs colorsquare} macro which is great for explaining colors in tables and captions. Example: \code{\bs colorsquare\{cscontrast!![0]\}} $=$ \colorsquare{cscontrast!![0]}
 % \end{macro}
 %
 %    \begin{macrocode}
-\RequirePackage[table]{xcolor}% before: tikz
+\RequirePackage[cmyk,table]{xcolor}% before: tikz
 \definecolorseries{cscontrast}{hsb}{step}[hsb]{1,0.9,0.7}{0.59,0,0}
 \definecolorseries{csintense}{hsb}{grad}[hsb]{1,0,0.7}{0,1,0}
 \definecolorseries{csblend}{hsb}{grad}[hsb]{1,0,0}{0,0,1}
