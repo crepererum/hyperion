@@ -155,27 +155,47 @@ See http://www.luatex.org/}
 % \subsection{Colors}
 % The following colors get definied and should be used as following:
 % \begin{center}
-% \begin{tabularx}{\linewidth}{llX}
+% \begin{tabularx}{\linewidth}{lLX}
 %     \toprule
 %     Name & Color & Usage \\
 %     \midrule
+%     \code{cscontrast!![\var{0..15}]} &
 %     \directlua{
-%         for index=0,9 do
-%             tex.print("\string\\code{cscontrast!!["..index.."]} & \string\\colorsquare{cscontrast!!["..index.."]} & "..index..". contrast color in graphics\string\\\string\\")
+%         for index=0,15 do
+%             tex.print("\string\\colorsquare{cscontrast!!["..index.."]} ")
 %         end
 %     }
+%     & Contrast colors in graphics \\
+%     \code{csintense!![\var{0..15}]} &
+%     \directlua{
+%         for index=0,15 do
+%             tex.print("\string\\colorsquare{csintense!!["..index.."]} ")
+%         end
+%     }
+%     & Intensity colors in graphics \\
+%     \code{csblend!![\var{0..15}]} &
+%     \directlua{
+%         for index=0,15 do
+%             tex.print("\string\\colorsquare{csblend!!["..index.."]} ")
+%         end
+%     }
+%     & Blending colors in graphics \\
 %     \code{colcode} & \colorsquare{colcode} & Code, macros and variables \\
 %     \bottomrule
 % \end{tabularx}
 % \end{center}
 % \begin{macro}{\colorsquare}
-% Furthermore, there is a \code{\bs colorsquare} macro which is great for explaining colors in tables and captions. Example: \code{\bs colorsquare\{cscontrast!!0\}} $=$ \colorsquare{cscontrast!!0}
+% Furthermore, there is a \code{\bs colorsquare} macro which is great for explaining colors in tables and captions. Example: \code{\bs colorsquare\{cscontrast!![0]\}} $=$ \colorsquare{cscontrast!![0]}
 % \end{macro}
 %
 %    \begin{macrocode}
 \RequirePackage[table]{xcolor}% before: tikz
-\definecolorseries{cscontrast}{rgb}{grad}[rgb]{.95,.85,.55}{3,11,17}
-\resetcolorseries[10]{cscontrast}
+\definecolorseries{cscontrast}{hsb}{step}[hsb]{1,0.9,0.7}{0.59,0,0}
+\definecolorseries{csintense}{hsb}{grad}[hsb]{1,0,0.7}{0,1,0}
+\definecolorseries{csblend}{hsb}{grad}[hsb]{1,0,0}{0,0,1}
+\resetcolorseries{cscontrast}
+\resetcolorseries{csintense}
+\resetcolorseries{csblend}
 \definecolor{colcode}{gray}{0.25}
 \newcommand{\colorsquare}[1]{\colorbox{#1}{\phantom{\texttt{X}}}}
 %    \end{macrocode}
@@ -259,7 +279,7 @@ See http://www.luatex.org/}
 % Nearly all symbols you need are imported and some helpers for math typsetting are avaible. Math is emmited as Unicode which provides a clearer look than the standard font and kerning hacks. This also enables the user to copy-and-paste symbol and search for equations.
 %
 % \begin{center}
-% \begin{tabularx}{\linewidth}{XXX}
+% \begin{tabularx}{\linewidth}{lXX}
 %     \toprule
 %     Macro & Example & Result \\
 %     \midrule
@@ -270,6 +290,7 @@ See http://www.luatex.org/}
 %     \code{\bs mutual} & \code{\$\bs mutual\{X\}\{Y\}\$} & $\mutual{X}{Y}$ \\
 %     \code{\bs entropy} & \code{\$\bs entropy\{X\}\$} & $\entropy{X}$ \\
 %     \code{\bs code} & \code{\bs code\{getID()\}} & \code{getID()} \\
+%     \code{\bs var} & \code{\bs code\{getName(\bs var\{id\})\}} & \code{getName(\var{id})} \\
 %     \code{\bs bs} & \code{\bs bs} & \bs \\
 %     \bottomrule
 % \end{tabularx}
@@ -292,6 +313,7 @@ See http://www.luatex.org/}
 \newcommand{\mutual}[2]{\mathrm{I}\left(#1,#2\right)}
 \newcommand{\entropy}[1]{\mathrm{H}\left(#1\right)}
 \newcommand{\code}[1]{\textsmaller{\textcolor{colcode}{\texttt{#1}}}}
+\newcommand{\var}[1]{\textit{#1}}
 \newcommand{\bs}{\textbackslash}
 %    \end{macrocode}
 % \end{macro}
