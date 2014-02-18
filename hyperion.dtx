@@ -154,32 +154,21 @@ See http://www.luatex.org/}
 %
 % \subsection{Colors}
 % The following colors get definied and should be used as following:
+% \newcommand{\democs}[1]{
+%     \directlua{
+%         for index=0,15 do
+%             tex.print("\string\\colorsquare{#1!!["..index.."]} ")
+%         end
+%     }
+% }
 % \begin{center}
 % \begin{tabularx}{\linewidth}{lLX}
 %     \toprule
 %     Name & Color & Usage \\
 %     \midrule
-%     \code{cscontrast!![\var{0..15}]} &
-%     \directlua{
-%         for index=0,15 do
-%             tex.print("\string\\colorsquare{cscontrast!!["..index.."]} ")
-%         end
-%     }
-%     & Contrast colors in graphics \\
-%     \code{csintense!![\var{0..15}]} &
-%     \directlua{
-%         for index=0,15 do
-%             tex.print("\string\\colorsquare{csintense!!["..index.."]} ")
-%         end
-%     }
-%     & Intensity colors in graphics \\
-%     \code{csblend!![\var{0..15}]} &
-%     \directlua{
-%         for index=0,15 do
-%             tex.print("\string\\colorsquare{csblend!!["..index.."]} ")
-%         end
-%     }
-%     & Blending colors in graphics \\
+%     \code{cscontrast!![\var{0..15}]} & \democs{cscontrast} & Contrast colors in graphics \\
+%     \code{csintense!![\var{0..15}]} & \democs{csintense} & Intensity colors in graphics \\
+%     \code{csblend!![\var{0..15}]} & \democs{csblend} & Blending colors in graphics \\
 %     \code{colcode} & \colorsquare{colcode} & Code, macros and variables \\
 %     \bottomrule
 % \end{tabularx}
