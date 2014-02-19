@@ -175,7 +175,7 @@ def create_new_package(name, dout, version, date, description, fall=None):
     f.write('\\else\n')
     f.write('\\ifxetex\n')
     f.write('\\else\n')
-    f.write('\\ClassError{hyperionbook}{LuaLaTeX or XeLaTeX required!}{Please compile with LuaLaTeX or XeLaTeX to when using this class. See http://www.luatex.org/ and http://xetex.sourceforge.net/}\n')
+    f.write('\\ClassError{' + pname + '}{LuaLaTeX or XeLaTeX required!}{Please compile with LuaLaTeX or XeLaTeX to when using this class. See http://www.luatex.org/ and http://xetex.sourceforge.net/}\n')
     f.write('\\fi\n')
     f.write('\\fi\n')
 
