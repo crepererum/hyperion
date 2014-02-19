@@ -38,7 +38,7 @@
 %
 %
 % \DoNotIndex{\begin,\end}
-% \DoNotIndex{\ifluatex,\fi,\else}
+% \DoNotIndex{\ifluatex,\fi,\else,\IfFileExists}
 % \DoNotIndex{\def,\edef,\relax}
 % \DoNotIndex{\newcommand,\renewcommand,\newtheorem,\newcolumntype}
 % \DoNotIndex{\NeedsTeXFormat,\LoadClass,\ClassError,\ProvidesClass,\PassOptionsToPackage,\RequirePackage}
@@ -130,7 +130,7 @@ See http://www.luatex.org/}
 %
 %
 % \subsection{References}
-% To reference other documents, websites, figures, tables or sections of the document, the commands \code{\bs ref}, \code{\bs URL} and \code{\bs cite} should be used. Biblatex and Biber provides useful data which can used for a bibliography. Don't forget to include the bibtex resources by using \code{\bs addbibresource\{path/to/file.bib\}}.
+% To reference other documents, websites, figures, tables or sections of the document, the commands \code{\bs ref}, \code{\bs URL} and \code{\bs cite} should be used. Biblatex and Biber provides useful data which can used for a bibliography. The file \code{citiation.bib} gets automatically included if it exists. You can include addional bibtex resources by using \code{\bs addbibresource\{path/to/file.bib\}}.
 %
 %    \begin{macrocode}
 \RequirePackage{hyperref}
@@ -147,6 +147,7 @@ See http://www.luatex.org/}
     citecolor=black,% black cite
     final% also work in draft mode, TODO remove this!
 }
+\IfFileExists{citation.bib}{\addbibresource{citiation.bib}}{}
 \renewcommand*{\UrlFont}{\ttfamily\smaller\relax}
 %    \end{macrocode}
 %
