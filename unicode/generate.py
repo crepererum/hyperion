@@ -145,11 +145,11 @@ def print_header(s, f):
     f.write('%---' + s.upper() + ('-' * (17 - len(s))) + '\n')
     f.write('%--------------------\n')
 
-def create_new_package(name, dout, version, date, description, fall=None):
+def create_new_package(pname, dout, version, date, description, fall=None):
     """Creates a new LaTeX package
 
     Args:
-        name: unescaped package name
+        pname: escaped package name
         dout: output directory
         version: package version string
         date: package date (YYYY/MM/DD)
@@ -160,9 +160,6 @@ def create_new_package(name, dout, version, date, description, fall=None):
         File handler of the new LaTeX package file
 
     """
-    print(name + ': ', end='')
-    pname = package_name(name)
-
     f = open(dout + '/' + pname + '.sty', 'w')
 
     f.write('\\NeedsTeXFormat{LaTeX2e}\n')
@@ -182,6 +179,10 @@ def create_new_package(name, dout, version, date, description, fall=None):
     if fall:
         fall.write('\\RequirePackage{' + pname + '}\n')
 
+        print_header('style', f)
+        f.write('\\newcommand{\\' + pname + '@style}[1]{#1}\n')
+        f.write('\\newcommand{\\' + pname + 'Style}[1]{\\renewcommand{\\' + pname + '@style}[1]{{#1##1}}}\n')
+
     print_header('symbols', f)
 
     return f
@@ -199,16 +200,17 @@ def finalize_package(f):
         f.close()
         print('done')
 
-def print_symbol(f, name, hnumber):
+def print_symbol(f, name, hnumber, pname):
     """Prints a symbol definition to a LaTeX file
 
     Args:
         f: LaTeX file
         name: escpaed symbol name
         hnumber: hexnumber string
+        pname: escaped package name
 
     """
-    f.write('\\newcommand{\\' + name + '}{\\symbol{"' + hnumber + '}}\n')
+    f.write('\\newcommand{\\' + name + '}{\\' + pname + '@style{\\symbol{"' + hnumber + '}}}\n')
 
 def process_data(fdata, blocks, dout, version, date):
     """Processes UnicodeData.txt
@@ -224,7 +226,7 @@ def process_data(fdata, blocks, dout, version, date):
     print('')
     print('---Process data---')
     fall = create_new_package(
-        name='all',
+        pname=package_name('all'),
         dout=dout,
         version=version,
         date=date,
@@ -233,6 +235,8 @@ def process_data(fdata, blocks, dout, version, date):
     f = None
     it = iter(blocks)
     end = None
+    pname = None
+    pnames = []
     index = {}
 
     for l in fdata:
@@ -254,9 +258,12 @@ def process_data(fdata, blocks, dout, version, date):
             finalize_package(f)
 
             block = next(it)
+            print(block['name'] + ': ', end='')
             end = block['end']
+            pname = package_name(block['name'])
+            pnames.append(pname)
             f = create_new_package(
-                name=block['name'],
+                pname=pname,
                 dout=dout,
                 version=version,
                 date=date,
@@ -264,9 +271,16 @@ def process_data(fdata, blocks, dout, version, date):
                 fall=fall
             )
 
-        print_symbol(f, name, hnumber)
+        print_symbol(f, name, hnumber, pname)
 
     finalize_package(f)
+
+    # finallize ALL package
+    print_header('style', fall)
+    fall.write('\\newcommand{\\' + package_name('all') + 'Style}[1]{%\n')
+    for p in pnames:
+        fall.write('    \\' + p + 'Style{#1}%\n')
+    fall.write('}\n')
     finalize_package(fall)
 
 def main():
