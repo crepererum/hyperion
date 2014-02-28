@@ -179,6 +179,7 @@ class CommandAction(Action):
             fcntl.fcntl(child.stdout, fcntl.F_SETFL, os.O_NONBLOCK)
             fcntl.fcntl(child.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
             flog = open(config['log'], 'a')
+            self.print_log_header(flog)
             counter = 0
             while status == None:
                 s = child.poll()
@@ -191,23 +192,20 @@ class CommandAction(Action):
                 if out != '':
                     flog.write(out)
                     flog.flush()
+                    if config['print_stdout']:
+                        self.print_char(out, counter)
                     changed = True
                 if err != '':
                     flog.write(err)
                     flog.flush()
+                    if config['print_stderr']:
+                        self.print_char(err, counter)
                     changed = True
 
                 if changed:
                     counter = (counter + 1) % 4
-                    if counter == 0:
-                        print('\b-', end='')
-                    elif counter == 1:
-                        print('\b/', end='')
-                    elif counter == 2:
-                        print('\b|', end='')
-                    elif counter == 3:
-                        print('\b\\', end='')
-                    sys.stdout.flush()
+                    sys.stdout.write('\b')
+                    self.print_process(counter)
                 else:
                     time.sleep(0.05)
         except KeyboardInterrupt:
@@ -253,6 +251,32 @@ class CommandAction(Action):
 
         return False
 
+    def print_process(self, counter):
+        if counter == 0:
+            sys.stdout.write('-')
+        elif counter == 1:
+            sys.stdout.write('/')
+        elif counter == 2:
+            sys.stdout.write('|')
+        elif counter == 3:
+            sys.stdout.write('\\')
+        sys.stdout.flush()
+
+    def print_char(self, c, counter):
+        sys.stdout.write('\b')
+        if c == '\n':
+            sys.stdout.write(' ')
+        sys.stdout.write(c)
+        self.print_process(counter)
+
+    def print_log_header(self, flog):
+        flog.write('\n')
+        flog.write(('+' * 80) + '\n')
+        flog.write(('+' * 80) + '\n')
+        flog.write(('+' * 10) + str(self) + '\n')
+        flog.write(('+' * 80) + '\n')
+        flog.write(('+' * 80) + '\n')
+
 class TexBibAction(CommandAction):
     def __init__(self, path):
         self.path = path
@@ -275,7 +299,7 @@ class TexCompileAction(CommandAction):
             else:
                 cmd = 'luatex'
 
-            cmd = cmd + ' --file-line-error --interaction=batchmode'
+            cmd = cmd + ' --file-line-error --interaction=nonstopmode'
 
             if self.format in ['dvi', 'pdf']:
                 cmd = cmd + ' --output-format=' + self.format
@@ -324,7 +348,7 @@ class TexIndexAction(CommandAction):
         self.path = path
         self.out = out
         self.style = style
-        super().__init__('makeindex -s ' + self.style + ' -o ' + self.out + ' ' + self.path)
+        super().__init__('makeindex -q -s ' + self.style + ' -o ' + self.out + ' ' + self.path)
 
 class MyEncoder(json.JSONEncoder):
     def default(self, o):
@@ -410,6 +434,8 @@ config = {
     },
     'log': 'autotex.log',
     'max_rounds': 10,
+    'print_stdout': False,
+    'print_stderr': True,
     'state': '.autotex.state',
     'tmpdir': _tmpdir.name,
     'verbose': False
