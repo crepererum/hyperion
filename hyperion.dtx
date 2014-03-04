@@ -102,14 +102,6 @@ See http://www.luatex.org/}
 % Hyperion provides a bunch of very useful features to create clean and modern documents very easy. This section provides information about these features and presents the implementation details.
 %
 %
-% \subsection{Language}
-% Currently only English is supported.
-%
-%    \begin{macrocode}
-\RequirePackage[english]{babel}
-%    \end{macrocode}
-%
-%
 % \subsection{Font}
 % Linux Libertine and microtype are used to provide a modern optimized typeface.
 %
@@ -129,6 +121,15 @@ See http://www.luatex.org/}
     shrink=10
 ]{microtype}
 \microtypecontext{spacing=nonfrench}
+%    \end{macrocode}
+%
+%
+% \subsection{Language}
+% Currently only English is supported.
+%
+%    \begin{macrocode}
+\RequirePackage{polyglossia}
+\setdefaultlanguage[variant=unsmax]{english}
 %    \end{macrocode}
 %
 %
