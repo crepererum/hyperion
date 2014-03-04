@@ -432,6 +432,8 @@ config = {
             'auto': True
         }
     },
+    'continuously': False,
+    'continuously_wait': 3,
     'log': 'autotex.log',
     'max_rounds': 10,
     'print_stdout': False,
@@ -661,6 +663,12 @@ def main():
         help='Config file (YAML)'
     )
     parser.add_argument(
+        '--continuously', '-e',
+        action='store_true',
+        default=None,
+        help='Update build continuously'
+    )
+    parser.add_argument(
         '--state', '-s',
         type=str,
         help='File that stores the serialized state of autotex'
@@ -724,16 +732,29 @@ def main():
             print('Interrupted')
             terminate = True
 
-        # safe state
-        if changed:
-            save_state(actions)
-
+        # debug prints
         if config['verbose']:
             print()
-            print("Tracked commands:")
+            print('Tracked commands:')
             for a in actions:
                 print(str(a))
             print()
+
+        # safe state
+        if changed:
+            save_state(actions)
+        elif config['continuously'] and not terminate:
+            print('Nothing to do, wait ' + str(config['continuously_wait']) + 's')
+            try:
+                time.sleep(config['continuously_wait'])
+                changed = True
+                rounds = 0
+            except KeyboardInterrupt:
+                signal.signal(signal.SIGINT, signal.SIG_IGN)
+                print()
+                print('Interrupted')
+                terminate = True
+            continue
 
         rounds = rounds + 1
         if (config['max_rounds'] != 0) and (rounds > config['max_rounds']) and not terminate:
