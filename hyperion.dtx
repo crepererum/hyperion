@@ -83,7 +83,7 @@
 %
 %
 % \section{Requirements}
-% To use the classes provided by this package, Lua\LaTeX{} is required.
+% To use the classes provided by this package, \LuaLaTeX{} is required.
 %
 %    \begin{macrocode}
 \RequirePackage{ifluatex}
@@ -114,7 +114,10 @@ See http://www.luatex.org/}
 % Linux Libertine and microtype are used to provide a modern optimized typeface.
 %
 %    \begin{macrocode}
-\RequirePackage[T1]{fontenc}
+\RequirePackage{fontspec}
+\setmainfont{Linux Libertine O}
+\setmonofont{Linux Libertine Mono O}
+\setsansfont{Linux Biolinum O}
 \RequirePackage{libertine}
 \RequirePackage{relsize}
 \RequirePackage[
@@ -289,6 +292,7 @@ See http://www.luatex.org/}
 %    \begin{macrocode}
 \RequirePackage{amsmath}
 \RequirePackage{amssymb}
+\RequirePackage{metalogo}
 \RequirePackage{ccicons}
 \RequirePackage{siunitx}% after: amssymb
 \RequirePackage[intoc]{nomencl}
