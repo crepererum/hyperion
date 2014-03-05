@@ -629,24 +629,17 @@ def restore_state():
     return actions
 
 
-def initialize_state():
+def initialize_state(files):
     actions = set()
-    if config['files']:
-        for f in config['files']:
-            fa = FileAction(f)
-            ta = detect_actions(f, False)
-            if ta:
-                for a in ta:
-                    a.add_dependency(fa)
-                actions.add(fa)
-                actions.update(ta)
 
-        if not actions:
-            print('Error: no matching action for this file!')
-            exit(1)
-    else:
-        parser.print_usage()
-        exit(1)
+    for f in files:
+        fa = FileAction(f)
+        ta = detect_actions(f, False)
+        if ta:
+            for a in ta:
+                a.add_dependency(fa)
+            actions.add(fa)
+            actions.update(ta)
 
     return actions
 
@@ -713,7 +706,7 @@ def main():
     try:
         cf = open(args.config)
         config = patch_dict(config, yaml.load(cf.read()))
-    except Exception as e:
+    except Exception:
         pass
     finally:
         if cf:
@@ -728,7 +721,15 @@ def main():
     # try to restore or initialize state
     actions = restore_state()
     if not actions:
-        actions = initialize_state()
+        if config['files']:
+            actions = initialize_state(config['files'])
+        else:
+            parser.print_usage()
+            exit(1)
+
+    if not actions:
+        print('Error: no matching action for this file!')
+        exit(1)
 
     # main loop (fixpoint iteration)
     changed = True
