@@ -23,6 +23,7 @@
 *.xmpi
 
 # build results
+*.cls
 *.dvi
 *.pdf
 svg/*
