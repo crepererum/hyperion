@@ -17,13 +17,13 @@
    - [`print_stderr`](#print_stderr)
    - [`state`](#state)
    - [`tmpdir`](#tmpdir)
-   - [`verbose`](#vebose)
+   - [`verbose`](#verbose)
  - [Actions](#actions)
    - [`Action`](#action)
    - [`FileAction`](#fileaction)
    - [`CommandAction`](#commandaction)
    - [`TexBibAction`](#texbibaction)
-   - [`TexCompileAction`](#texcomileaction)
+   - [`TexCompileAction`](#texcompileaction)
    - [`TexIndexAction`](#texindexaction)
 
 ##Requirements
