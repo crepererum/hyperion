@@ -26,6 +26,7 @@
 *.cls
 *.dvi
 *.pdf
+*.sty
 
 # cache and bytecode
 .autotex.state
