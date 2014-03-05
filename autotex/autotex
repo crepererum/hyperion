@@ -17,18 +17,20 @@ import tempfile
 import time
 import yaml
 
-################################################################################
-################### HELPER LIBS ################################################
-################################################################################
+
+###############################################################################
+################### HELPER LIBS ###############################################
+###############################################################################
 def get_equivalent(container, item, default=None):
     for x in container:
         if x == item:
             return x
     return default
 
-################################################################################
-################### CLASSES ####################################################
-################################################################################
+
+###############################################################################
+################### CLASSES ###################################################
+###############################################################################
 class Action:
     def __init__(self):
         self.deps = set()
@@ -59,7 +61,6 @@ class Action:
             'influences': influences,
             'state': state
         }
-
 
     def from_json(self, j):
         self.__dict__ = j['state']
@@ -94,6 +95,7 @@ class Action:
 
         return []
 
+
 class FileAction(Action):
     def __init__(self, path, checksum=None):
         super().__init__()
@@ -119,11 +121,13 @@ class FileAction(Action):
         return -100
 
     def needs_update(self):
-        return super().needs_update() or (self.checksum != self.calc_file_checksum())
+        return super().needs_update() \
+            or (self.checksum != self.calc_file_checksum())
 
     def update(self):
         self.checksum = self.calc_file_checksum()
-        print('File changed: "' + self.path + '" (Checksum=' + self.checksum + ')')
+        print('File changed: "' + self.path
+              + '" (Checksum=' + self.checksum + ')')
         super().update()
         return []
 
@@ -136,6 +140,7 @@ class FileAction(Action):
         except IOError:
             return '0'
 
+
 class CommandAction(Action):
     def __init__(self, command, ignores=[]):
         super().__init__()
@@ -144,7 +149,8 @@ class CommandAction(Action):
 
     def __eq__(self, other):
         if isinstance(other, CommandAction):
-            return (self.command == other.command) and (self.ignores == other.ignores)
+            return (self.command == other.command) \
+                and (self.ignores == other.ignores)
         else:
             return False
 
@@ -181,11 +187,11 @@ class CommandAction(Action):
             flog = open(config['log'], 'a')
             self.print_log_header(flog)
             counter = 0
-            while status == None:
+            while status is None:
                 s = child.poll()
                 out = child.stdout.read(1)
                 err = child.stderr.read(1)
-                if (s != None) and (out == '') and (err == ''):
+                if (s is not None) and (out == '') and (err == ''):
                     status = s
 
                 changed = False
@@ -212,7 +218,6 @@ class CommandAction(Action):
             if child:
                 child.terminate()
             raise
-
 
         # get and analyze trace log
         f = open(tfname)
@@ -277,6 +282,7 @@ class CommandAction(Action):
         flog.write(('+' * 80) + '\n')
         flog.write(('+' * 80) + '\n')
 
+
 class TexBibAction(CommandAction):
     def __init__(self, path):
         self.path = path
@@ -284,6 +290,7 @@ class TexBibAction(CommandAction):
             command='biber ' + self.path,
             ignores=[r"\.blg$"]
         )
+
 
 class TexCompileAction(CommandAction):
     def __init__(self, path, engine='luatex', latex=True, format='pdf'):
@@ -304,7 +311,8 @@ class TexCompileAction(CommandAction):
             if self.format in ['dvi', 'pdf']:
                 cmd = cmd + ' --output-format=' + self.format
             else:
-                raise Exception('Format(' + self.format + ') is not supported by LuaTeX!')
+                raise Exception('Format(' + self.format
+                                + ') is not supported by LuaTeX!')
         elif self.engine == 'xetex':
             if self.latex:
                 cmd = 'xelatex'
@@ -318,14 +326,16 @@ class TexCompileAction(CommandAction):
             elif self.format == 'xdv':
                 cmd = cmd + ' -no-pdf'
             else:
-                raise Exception('Format(' + self.format + ') is not supported by XeTeX!')
+                raise Exception('Format(' + self.format
+                                + ') is not supported by XeTeX!')
         elif self.engine == 'pdftex':
             if self.format == 'pdf':
                 cmd = 'pdf'
             elif self.format == 'dvi':
                 cmd = ''
             else:
-                raise Exception('Format(' + self.format + ') is not supported by pdfTeX!')
+                raise Exception('Format(' + self.format
+                                + ') is not supported by pdfTeX!')
 
             if self.latex:
                 cmd = cmd + 'latex'
@@ -343,12 +353,16 @@ class TexCompileAction(CommandAction):
             ignores=[r"\.log$", r"\.pdf$"]
         )
 
+
 class TexIndexAction(CommandAction):
     def __init__(self, path, out, style):
         self.path = path
         self.out = out
         self.style = style
-        super().__init__('makeindex -q -s ' + self.style + ' -o ' + self.out + ' ' + self.path)
+        super().__init__('makeindex -q -s ' + self.style
+                         + ' -o ' + self.out
+                         + ' ' + self.path)
+
 
 class MyEncoder(json.JSONEncoder):
     def default(self, o):
@@ -365,9 +379,9 @@ class MyEncoder(json.JSONEncoder):
 
         return l
 
-################################################################################
-################### CONSTANTS ##################################################
-################################################################################
+###############################################################################
+################### CONSTANTS #################################################
+###############################################################################
 RE_TRACELINE = re.compile(r"""
     ^
     \d+                    # PID (dropped)
@@ -398,10 +412,10 @@ TRACE_CMD = 'strace -e trace=file -f -qq -y -o'
 YAML_PATCH = '?+'
 YAML_REMOVE = '?-'
 
-################################################################################
-################### GLOBALS ####################################################
-################################################################################
 
+###############################################################################
+################### GLOBALS ###################################################
+###############################################################################
 _tmpdir = tempfile.TemporaryDirectory()
 
 config = {
@@ -443,9 +457,10 @@ config = {
     'verbose': False
 }
 
-################################################################################
-################### ORPHAN METHODS #############################################
-################################################################################
+
+###############################################################################
+################### ORPHAN METHODS ############################################
+###############################################################################
 def detect_actions(path, auto_only=True):
     actions = []
 
@@ -454,7 +469,7 @@ def detect_actions(path, auto_only=True):
         # auto filter
         ok_auto = None
         if auto_only:
-            if ('auto' in cmd) and (cmd['auto'] == True):
+            if ('auto' in cmd) and (cmd['auto'] is True):
                 ok_auto = True
             else:
                 ok_auto = False
@@ -496,6 +511,7 @@ def detect_actions(path, auto_only=True):
 
     return actions
 
+
 def analyze_trace(f):
     targets = set()
 
@@ -511,13 +527,16 @@ def analyze_trace(f):
 
             # can we get the target?
             if func in TARGET_MAP:
-                target = os.path.abspath(args[TARGET_MAP[func]].replace('"', ''))
+                target_rel = args[TARGET_MAP[func]].replace('"', '')
+                target = os.path.abspath(target_rel)
 
                 # is this a local file?
-                if os.path.commonprefix([config['basedir'], target]) == config['basedir']:
+                if os.path.commonprefix([config['basedir'], target]) \
+                        == config['basedir']:
                     targets.add(os.path.relpath(target))
 
     return targets
+
 
 def decode_json(f):
     a = json.load(f)
@@ -542,13 +561,14 @@ def decode_json(f):
 
     return result
 
+
 def patch_list(orig, patch):
     l = []
     if orig:
         l = orig.copy()
 
     for entry in patch:
-        if entry != None:
+        if entry is not None:
             if (type(entry) == str) and entry.startswith(YAML_REMOVE):
                 l = [x for x in l if x != entry[len(YAML_REMOVE):]]
             elif (type(entry) == str) and entry.startswith(YAML_PATCH):
@@ -559,13 +579,14 @@ def patch_list(orig, patch):
 
     return l
 
+
 def patch_dict(orig, patch):
     d = {}
     if orig:
         d = orig.copy()
 
     for key, value in patch.items():
-        if value != None:
+        if value is not None:
             if key.startswith(YAML_REMOVE):
                 tmp_key = key[len(YAML_REMOVE):]
                 d.pop(tmp_key, None)
@@ -591,6 +612,7 @@ def patch_dict(orig, patch):
 
     return d
 
+
 def restore_state():
     actions = None
     sf = None
@@ -605,6 +627,7 @@ def restore_state():
             sf.close()
 
     return actions
+
 
 def initialize_state():
     actions = set()
@@ -627,12 +650,14 @@ def initialize_state():
 
     return actions
 
+
 def save_state(actions):
     state_tmp = config['state'] + '.new'
     sf = open(state_tmp, 'w')
     json.dump(actions, sf, cls=MyEncoder, indent=4)
     sf.close()
     shutil.move(state_tmp, config['state'])
+
 
 def main():
     global config
@@ -711,7 +736,8 @@ def main():
     terminate = False
     while changed and not terminate:
         changed = False
-        schedule = sorted([a for a in actions if a.needs_update()], key=operator.methodcaller('priority'))
+        schedule = sorted([a for a in actions if a.needs_update()],
+                          key=operator.methodcaller('priority'))
 
         try:
             # update actions
@@ -744,7 +770,8 @@ def main():
         if changed:
             save_state(actions)
         elif config['continuously'] and not terminate:
-            print('Nothing to do, wait ' + str(config['continuously_wait']) + 's')
+            print('Nothing to do, wait '
+                  + str(config['continuously_wait']) + 's')
             try:
                 time.sleep(config['continuously_wait'])
                 changed = True
@@ -757,7 +784,9 @@ def main():
             continue
 
         rounds = rounds + 1
-        if (config['max_rounds'] != 0) and (rounds > config['max_rounds']) and not terminate:
+        if (config['max_rounds'] != 0) \
+                and (rounds > config['max_rounds']) \
+                and not terminate:
             print('Error: Reached maximum number of rounds!')
             exit(1)
 
@@ -765,4 +794,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
