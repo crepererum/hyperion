@@ -22,6 +22,7 @@ NUMERAL_MAP = (
     (   1,  'I')
 )
 
+
 def int_to_roman(i):
     """Converts integer to roman number string
 
@@ -40,6 +41,7 @@ def int_to_roman(i):
         i -= integer * count
 
     return ''.join(result)
+
 
 def parse_blocks(fblocks):
     """Parses the Blocks.txt file
@@ -67,6 +69,7 @@ def parse_blocks(fblocks):
     print('done')
     return result
 
+
 def convert_number(s):
     """Converts number to LaTeX name parts
 
@@ -78,6 +81,7 @@ def convert_number(s):
 
     """
     return ' ' + ' '.join(list(int_to_roman(s))) + ' '
+
 
 def convert_name(s, specials=False):
     """Converts an entire name by appending its parts
@@ -109,6 +113,7 @@ def convert_name(s, specials=False):
     a = map(lambda x: x[0].upper() + x[1:].lower(), a)
     return ''.join(a)
 
+
 def package_name(s):
     """Converts a string to a LaTeX package name
 
@@ -120,6 +125,7 @@ def package_name(s):
 
     """
     return 'USymbol' + convert_name(s, False)
+
 
 def symbol_name(s):
     """Converts a string to a LaTeX symbol name
@@ -133,6 +139,7 @@ def symbol_name(s):
     """
     return 'USymbol' + convert_name(s, True)
 
+
 def print_header(s, f):
     """Prints a LaTeX section header comment to a file
 
@@ -145,6 +152,7 @@ def print_header(s, f):
     f.write('%--------------------\n')
     f.write('%---' + s.upper() + ('-' * (17 - len(s))) + '\n')
     f.write('%--------------------\n')
+
 
 def create_new_package(pname, dout, version, date, description, fall=None):
     """Creates a new LaTeX package
@@ -164,7 +172,8 @@ def create_new_package(pname, dout, version, date, description, fall=None):
     f = open(dout + '/' + pname + '.sty', 'w')
 
     f.write('\\NeedsTeXFormat{LaTeX2e}\n')
-    f.write('\\ProvidesPackage{' + pname + '}[' + date + ' v' + version + ' ' + description + ']\n')
+    f.write('\\ProvidesPackage{' + pname + '}[' + date
+            + ' v' + version + ' ' + description + ']\n')
 
     print_header('requirements', f)
     f.write('\\RequirePackage{ifluatex}\n')
@@ -173,7 +182,9 @@ def create_new_package(pname, dout, version, date, description, fall=None):
     f.write('\\else\n')
     f.write('\\ifxetex\n')
     f.write('\\else\n')
-    f.write('\\ClassError{' + pname + '}{LuaLaTeX or XeLaTeX required!}{Please compile with LuaLaTeX or XeLaTeX to when using this class. See http://www.luatex.org/ and http://xetex.sourceforge.net/}\n')
+    f.write('\\ClassError{' + pname + '}{LuaLaTeX or XeLaTeX required!}%\n')
+    f.write('{Please use LuaLaTeX or XeLaTeX. (no pdfTeX support, sorry)')
+    f.write('See http://www.luatex.org/ and http://xetex.sourceforge.net/}\n')
     f.write('\\fi\n')
     f.write('\\fi\n')
 
@@ -196,6 +207,7 @@ def create_new_package(pname, dout, version, date, description, fall=None):
 
     return f
 
+
 def finalize_package(f):
     """Write final LaTeX package data and close stream
 
@@ -209,6 +221,7 @@ def finalize_package(f):
         f.close()
         print('done')
 
+
 def print_symbol(f, name, hnumber, pname):
     """Prints a symbol definition to a LaTeX file
 
@@ -220,6 +233,7 @@ def print_symbol(f, name, hnumber, pname):
 
     """
     f.write('\\newcommand{\\' + name + '}{\\' + pname + '@style{\\symbol{"' + hnumber + '}}}\n')
+
 
 def process_data(fdata, blocks, dout, version, date):
     """Processes UnicodeData.txt
@@ -283,6 +297,7 @@ def process_data(fdata, blocks, dout, version, date):
     finalize_package(f)
     finalize_package(fall)
 
+
 def main():
     parser = argparse.ArgumentParser(
         description='Creates Unicode symbol macros for LuaLaTeX and XeLaTeX',
@@ -339,4 +354,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
