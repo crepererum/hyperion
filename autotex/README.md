@@ -1,5 +1,5 @@
 #autotex
-*Autotex* is tool to automatize the *LaTeX* compilation process. It is very similar to *latexmk* but provides a cleaner interface, some extra features and is written in [*Python 3*](https://www.python.org/).
+*Autotex* is tool to automatize the *LaTeX* compilation process. It is very similar to [*latexmk*](http://www.ctan.org/pkg/latexmk/) but provides a cleaner interface, some extra features and is written in [*Python 3*](https://www.python.org/).
 
  - [Requirements](#requirements)
  - [Usage](#usage)
@@ -18,9 +18,20 @@
    - [`state`](#state)
    - [`tmpdir`](#tmpdir)
    - [`verbose`](#vebose)
+ - [Actions](#actions)
+   - [`Action`](#action)
+   - [`FileAction`](#fileaction)
+   - [`CommandAction`](#commandaction)
+   - [`TexBibAction`](#texbibaction)
+   - [`TexCompileAction`](#texcomileaction)
+   - [`TexIndexAction`](#texindexaction)
 
 ##Requirements
-Apart from *Python 3* itself, [*PyYAML*](http://pyyaml.org/) is required. You can install it using you distribution package manager or pip.
+The following software is required and should be installed before using **autotex**:
+
+ - [*Python 3*](https://www.python.org/): this script is written in Python 3, so there is no way around it ;)
+ - [*PyYAML*](http://pyyaml.org/): reading and writing of *YAML* files
+ - Linux operating system with `strace`: Used for tracing used files, support for other systems may be implemented later
 
 ##Usage
 To compile a .tex file just run
@@ -60,6 +71,17 @@ Maps filenames to actions. The keys are regular expressions to match filenames a
  - `type`: Python class of the action
  - `args`: constructor arguments
  - `auto`: `true` => actions get created as dependency, `false` actions get only created at program start, defaults to `false`
+
+Constructor arguments that are strings are processed by replacing special character sequences. The following table describes the replacements:
+
+| Sequence | Replacement                          |
+| -------- | ------------------------------------ |
+| `??`     | `?`                                  |
+| `?p`     | relative path of the matched file    |
+| `?w`     | relative path without file extension |
+| `?e`     | file extension of the matched file   |
+| `?d`     | directory of the matched file        |
+| `?b`     | basename of the matched file         |
 
 ###`continuously`
 Activates continues mode.
@@ -123,4 +145,50 @@ Controls if debug information gets printed to the console
 **Values:** `true` => you like debug output, `false` => you don't care
 
 **Default:** `false`
+
+##Actions
+*autotex* is based on the execution and linking of actions. These are Python classes that have several requirements. Right now there is no way to implement your own actions so you rely on the buildins.
+
+###`Action`
+The parent class of all actions. Apart from some helper methods it only keeps the `dirty` state wich records if an action should be reexecuted because of some dependencies. There are no constructor arguments.
+
+###`CommandAction`
+Executes a specified command, traces the used files and automatically creates new dependencies according to the `command_map`. For configuration of output redirection and logging see configuration section. Constructor arguments:
+
+ - `command`: string that gets passed to the shell
+ - `ignores`: list of regex strings that describes filenames that should be ignored during dependency generation. This should be output and log files, especially files containing timestamps. Defaults to `[]`
+
+###`FileAction`
+Checks if a file has changed and marks all influences actions as dirty. The constructor arguments are:
+
+ - `path`: path to the watched file
+ - `checksum`: initial file checksum, defaults to `None`
+
+###`TexBibAction`
+Calls [*biber*](http://biblatex-biber.sourceforge.net/) on the given file to create a bibliography. Constructor arguments:
+
+ - `path`: file path string
+
+###`TexCompileAction`
+Compiles .tex or .dtx files to different formats using different engines. Constructor arguments:
+
+ - `path`: file that you want to compile
+ - `engine`: see table below for possible values, defaults to `luatex`
+ - `format`: output format, possible values depend on the engine, defaults to `pdf`
+ - `latex`: `true` => input source is treated as LaTeX, `false` => use old school TeX instead, defaults to `true`
+
+ The following engines and output formats are supported:
+
+| Engine   | Supported Formats |
+| -------- | ----------------- |
+| `luatex` | `dvi`, `pdf`      |
+| `pdftex` | `dvi`, `pdf`      |
+| `xetex`  | `pdf`, `xdv`      |
+
+###`TexIndexAction`
+Creates an index by calling `makeindex`. Constructor arguments:
+
+ - `path`: file that should be processed
+ - `out`: output file
+ - `style`: used index style
 
