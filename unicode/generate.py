@@ -180,8 +180,16 @@ def create_new_package(pname, dout, version, date, description, fall=None):
         fall.write('\\RequirePackage{' + pname + '}\n')
 
         print_header('style', f)
+        pall = package_name('all')
         f.write('\\newcommand{\\' + pname + '@style}[1]{#1}\n')
         f.write('\\newcommand{\\' + pname + 'Style}[1]{\\renewcommand{\\' + pname + '@style}[1]{{#1##1}}}\n')
+        f.write('\\@ifundefined{' + pall + 'Style}%\n')
+        f.write('{%\n')
+        f.write('\\newcommand{\\' + pall + 'Style}[1]{\\' + pname + 'Style{#1}}%\n')
+        f.write('}{%\n')
+        f.write('\\let\\' + pname + '@list\\' + pall + 'Style%\n')
+        f.write('\\renewcommand{\\' + pall + 'Style}[1]{\\' + pname + 'Style{#1}\\' + pname + '@list{#1}}%\n')
+        f.write('}\n')
 
     print_header('symbols', f)
 
@@ -236,7 +244,6 @@ def process_data(fdata, blocks, dout, version, date):
     it = iter(blocks)
     end = None
     pname = None
-    pnames = []
     index = {}
 
     for l in fdata:
@@ -261,7 +268,6 @@ def process_data(fdata, blocks, dout, version, date):
             print(block['name'] + ': ', end='')
             end = block['end']
             pname = package_name(block['name'])
-            pnames.append(pname)
             f = create_new_package(
                 pname=pname,
                 dout=dout,
@@ -274,13 +280,6 @@ def process_data(fdata, blocks, dout, version, date):
         print_symbol(f, name, hnumber, pname)
 
     finalize_package(f)
-
-    # finallize ALL package
-    print_header('style', fall)
-    fall.write('\\newcommand{\\' + package_name('all') + 'Style}[1]{%\n')
-    for p in pnames:
-        fall.write('    \\' + p + 'Style{#1}%\n')
-    fall.write('}\n')
     finalize_package(fall)
 
 def main():
