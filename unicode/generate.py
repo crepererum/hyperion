@@ -2,6 +2,7 @@
 
 import argparse
 from datetime import date
+import os
 import re
 
 """Helper map for roman number convertion"""
@@ -320,6 +321,9 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
 
     blocks = parse_blocks(args.blocks)
     args.blocks.close()
