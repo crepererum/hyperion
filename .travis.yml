@@ -1,0 +1,8 @@
+language: python
+python:
+    - "3.3"
+install:
+    - pip install flake8 --use-mirrors
+script:
+    - flake8 -v ./autotex/autotex
+
