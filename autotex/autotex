@@ -88,6 +88,9 @@ class Action:
     def needs_update(self):
         return self.dirty
 
+    def check_status(self):
+        return 0
+
     def update(self):
         self.dirty = False
         for action in self.influences:
@@ -146,6 +149,7 @@ class CommandAction(Action):
         super().__init__()
         self.command = command
         self.ignores = ignores
+        self.status = None
 
     def __eq__(self, other):
         if isinstance(other, CommandAction):
@@ -166,6 +170,9 @@ class CommandAction(Action):
     def priority(self):
         return 100
 
+    def check_status(self):
+        return self.status
+
     def update(self):
         # run child process and redirect output
         print(self.command + ': -', end='')
@@ -173,7 +180,7 @@ class CommandAction(Action):
         cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
         sys.stdout.flush()
         child = None
-        status = None
+        self.status = None
         try:
             child = subprocess.Popen(
                 cmd,
@@ -187,12 +194,12 @@ class CommandAction(Action):
             flog = open(config['log'], 'a')
             self.print_log_header(flog)
             counter = 0
-            while status is None:
+            while self.status is None:
                 s = child.poll()
                 out = child.stdout.read(1)
                 err = child.stderr.read(1)
                 if (s is not None) and (out == '') and (err == ''):
-                    status = s
+                    self.status = s
 
                 changed = False
                 if out != '':
@@ -242,10 +249,10 @@ class CommandAction(Action):
                         result.extend(actions)
 
         flog.close()
-        if status == 0:
+        if self.status == 0:
             print('\bOK')
         else:
-            print('\bFAILED(' + str(status) + ')')
+            print('\bFAILED(' + str(self.status) + ')')
         super().update()
         return result
 
@@ -789,6 +796,12 @@ def main():
                 and (rounds > config['max_rounds']) \
                 and not terminate:
             print('Error: Reached maximum number of rounds!')
+            exit(1)
+
+    # check status of all actions
+    for a in actions:
+        if a.check_status():
+            print('There are some errors')
             exit(1)
 
     print('done')
