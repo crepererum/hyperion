@@ -4,7 +4,7 @@ python:
 install:
     - pip install flake8 --use-mirrors
     - wget https://github.com/scottkosty/install-tl-ubuntu/raw/master/install-tl-ubuntu
-    - bash ./install-tl-ubuntu
+    - sudo bash ./install-tl-ubuntu
 script:
     - flake8 -v ./autotex/autotex
 
