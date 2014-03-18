@@ -31,6 +31,7 @@ The following software is required and should be installed before using **autote
 
  - [*Python 3*](https://www.python.org/): this script is written in Python 3, so there is no way around it ;)
  - [*PyYAML*](http://pyyaml.org/): reading and writing of *YAML* files
+ - [*msgpack-python*](http://msgpack.org/): storing the internal state
  - Linux operating system with `strace`: Used for tracing used files, support for other systems may be implemented later
 
 ##Usage
