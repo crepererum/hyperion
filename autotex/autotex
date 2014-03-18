@@ -4,7 +4,7 @@ import argparse
 import binascii
 import fcntl
 import hashlib
-import json
+import msgpack
 import operator
 import os
 import os.path
@@ -371,21 +371,6 @@ class TexIndexAction(CommandAction):
                          + ' ' + self.path)
 
 
-class MyEncoder(json.JSONEncoder):
-    def default(self, o):
-        # assign IDs
-        i = 0
-        for x in o:
-            x._id = i
-            i = i + 1
-
-        # dump all objects
-        l = []
-        for x in o:
-            l.append(x.to_json())
-
-        return l
-
 ###############################################################################
 ################### CONSTANTS #################################################
 ###############################################################################
@@ -545,30 +530,6 @@ def analyze_trace(f):
     return targets
 
 
-def decode_json(f):
-    a = json.load(f)
-    table = {}
-    for j in a:
-        t = globals()[j['type']]
-        obj = t.__new__(t)
-        obj.from_json(j)
-        table[j['id']] = obj
-
-    result = set()
-    for j in a:
-        o = table[j['id']]
-
-        for y in j['deps']:
-            o.deps.add(table[y])
-
-        for y in j['influences']:
-            o.influences.add(table[y])
-
-        result.add(o)
-
-    return result
-
-
 def patch_list(orig, patch):
     l = []
     if orig:
@@ -623,9 +584,32 @@ def patch_dict(orig, patch):
 def restore_state():
     actions = None
     sf = None
+
     try:
-        sf = open(config['state'], 'r')
-        actions = decode_json(sf)
+        # load data from file
+        sf = open(config['state'], 'rb')
+        a = msgpack.unpackb(sf.read(), encoding='utf-8')
+        table = {}
+        for j in a:
+            t = globals()[j['type']]
+            obj = t.__new__(t)
+            obj.from_json(j)
+            table[j['id']] = obj
+
+        # restore dependency graph
+        result = set()
+        for j in a:
+            o = table[j['id']]
+
+            for y in j['deps']:
+                o.deps.add(table[y])
+
+            for y in j['influences']:
+                o.influences.add(table[y])
+
+            result.add(o)
+
+        actions = result
         print('State restored from file')
     except Exception:
         pass
@@ -652,10 +636,25 @@ def initialize_state(files):
 
 
 def save_state(actions):
+    # assign IDs
+    i = 0
+    for a in actions:
+        a._id = i
+        i = i + 1
+
+    # dump all objects
+    l = []
+    for a in actions:
+        l.append(a.to_json())
+
+    # write to temporary file
     state_tmp = config['state'] + '.new'
-    sf = open(state_tmp, 'w')
-    json.dump(actions, sf, cls=MyEncoder)
+    sf = open(state_tmp, 'wb')
+    sf.write(msgpack.packb(l, use_bin_type=True))
+    sf.flush()
     sf.close()
+
+    # finally overwrite old file
     shutil.move(state_tmp, config['state'])
 
 
