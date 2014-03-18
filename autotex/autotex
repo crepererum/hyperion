@@ -778,10 +778,14 @@ def main():
         if changed:
             save_state(actions)
         elif config['continuously'] and not terminate:
-            print('Nothing to do, wait '
-                  + str(config['continuously_wait']) + 's')
+            sys.stdout.write('Nothing to do, wait')
+            sys.stdout.flush()
             try:
-                time.sleep(config['continuously_wait'])
+                while not any(a.needs_update() for a in actions):
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
+                    time.sleep(config['continuously_wait'])
+                print('got something!')
                 changed = True
                 rounds = 0
             except KeyboardInterrupt:
