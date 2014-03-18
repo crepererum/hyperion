@@ -28,6 +28,30 @@ def get_equivalent(container, item, default=None):
     return default
 
 
+class FlatDict:
+    def __init__(self, entries):
+        self.entries = entries
+        self.size = len(self.entries)
+
+        self.table_index = {}
+        self.table_entry = {}
+        for i, e in enumerate(self.entries):
+            self.table_index[i] = e
+            self.table_entry[e] = i
+
+    def to_tuple(self, d):
+        l = [None] * self.size
+        for k, v in d.items():
+            l[self.table_entry[k]] = v
+        return tuple(l)
+
+    def from_tuple(self, t):
+        d = {}
+        for i, e in enumerate(t):
+            d[self.table_index[i]] = e
+        return d
+
+
 ###############################################################################
 ################### CLASSES ###################################################
 ###############################################################################
@@ -375,6 +399,14 @@ class TexIndexAction(CommandAction):
 ###############################################################################
 ################### CONSTANTS #################################################
 ###############################################################################
+LAYOUT_ACTION = FlatDict([
+    'id',
+    'type',
+    'deps',
+    'influences',
+    'state'
+])
+
 RE_TRACELINE = re.compile(r"""
     ^
     \d+                    # PID (dropped)
@@ -590,6 +622,7 @@ def restore_state():
         # load data from file
         sf = open(config['state'], 'rb')
         a = msgpack.unpackb(sf.read(), encoding='utf-8')
+        a = list(map(LAYOUT_ACTION.from_tuple, a))
         table = {}
         for j in a:
             t = globals()[j['type']]
@@ -646,7 +679,7 @@ def save_state(actions):
     # dump all objects
     l = []
     for a in actions:
-        l.append(a.to_json())
+        l.append(LAYOUT_ACTION.to_tuple(a.to_json()))
 
     # write to temporary file
     state_tmp = config['state'] + '.new'
