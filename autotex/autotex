@@ -73,16 +73,20 @@ class Action:
         for x in self.influences:
             influences.append(x._id)
 
+        dirty = self.dirty
+
         state = self.__dict__.copy()
         del state['_id']
         del state['deps']
         del state['influences']
+        del state['dirty']
 
         return {
             'id': self._id,
             'type': type(self).__name__,
             'deps': deps,
             'influences': influences,
+            'dirty': dirty,
             'state': state
         }
 
@@ -90,6 +94,7 @@ class Action:
         self.__dict__ = j['state']
         self.deps = set()
         self.influences = set()
+        self.dirty = j['dirty']
 
     def add_dependency(self, other):
         self.deps.add(other)
@@ -404,6 +409,7 @@ LAYOUT_ACTION = FlatDict([
     'type',
     'deps',
     'influences',
+    'dirty',
     'state'
 ])
 
