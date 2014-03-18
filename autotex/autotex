@@ -654,7 +654,7 @@ def initialize_state(files):
 def save_state(actions):
     state_tmp = config['state'] + '.new'
     sf = open(state_tmp, 'w')
-    json.dump(actions, sf, cls=MyEncoder, indent=4)
+    json.dump(actions, sf, cls=MyEncoder)
     sf.close()
     shutil.move(state_tmp, config['state'])
 
