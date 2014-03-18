@@ -129,8 +129,9 @@ class FileAction(Action):
 
     def update(self):
         self.checksum = self.calc_file_checksum()
+        checksum_string = str(binascii.hexlify(self.checksum), 'utf8')
         print('File changed: "' + self.path
-              + '" (Checksum=' + self.checksum + ')')
+              + '" (Checksum=' + checksum_string + ')')
         super().update()
         return []
 
@@ -139,9 +140,9 @@ class FileAction(Action):
             f = open(self.path, 'rb')
             checksum = hashlib.sha256(f.read()).digest()
             f.close()
-            return str(binascii.hexlify(checksum), 'utf8')
+            return checksum
         except IOError:
-            return '0'
+            return b''
 
 
 class CommandAction(Action):
