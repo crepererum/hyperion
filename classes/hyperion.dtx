@@ -48,7 +48,7 @@
 % \DoNotIndex{\definecolor,\definecolorseries,\resetcolorseries,\colorbox,\textcolor,\color,\phantom}
 % \DoNotIndex{\draw,\kern,\pgfkeys,\pgfmathparse,\pgfmathresult,\pgfplotsset,\pgftransformresetnontranslations,\pgfuseplotmark,\rotatebox,\tikz,\tikzset}
 % \DoNotIndex{\mathbb,\mathrm,\smaller,\textsmaller,\tiny,\textit,\textsf,\texttt,\ttfamily,\UrlFont,\MacroFont,\setmathfont}
-% \DoNotIndex{\listalgorithmcfname,\nomname}
+% \DoNotIndex{\listalgorithmcfname,\nomname,\lstset}
 % \DoNotIndex{\textbackslash}
 %
 %
@@ -354,10 +354,16 @@ See http://www.luatex.org/}
 %
 % \subsection{Algorithms and Code}
 %    \begin{macrocode}
+\RequirePackage{listings}
 \RequirePackage[
     ruled,% nice lines above/beyond the algorithms
     linesnumbered% draw line numbers
 ]{algorithm2e}
+\lstset{
+    basicstyle=\smaller\color{colcode},
+    numberblanklines=false,
+    numbers=left
+}
 \newcommand{\listofalgorithmes}{\tocfile{\listalgorithmcfname}{loa}}
 %<doc>\def\MacroFont{\ttfamily\smaller\color{colcode}}
 %    \end{macrocode}
