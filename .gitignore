@@ -29,6 +29,9 @@
 *.sty
 *.tex
 
+# Resources
+unicode/*.txt
+
 # cache and bytecode
 .autotex.state
 *.pyc
