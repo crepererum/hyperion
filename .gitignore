@@ -27,15 +27,14 @@
 *.dvi
 *.pdf
 *.sty
+*.tex
 
 # cache and bytecode
 .autotex.state
 *.pyc
 
-# resources
-*.txt
-
 # tmp files
 *~
 *.swp
 *.vim
+
