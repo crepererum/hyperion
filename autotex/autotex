@@ -33,10 +33,10 @@ def get_equivalent(container, item, default=None):
 ################### CLASSES ###################################################
 ###############################################################################
 class Action:
-    def __init__(self):
+    def __init__(self, dirty=True):
         self.deps = set()
         self.influences = set()
-        self.dirty = False
+        self.dirty = dirty
 
     def __str__(self):
         return 'unknown action'
@@ -182,10 +182,10 @@ class CommandAction(Action):
 
     def update(self):
         # run child process and redirect output
-        print(self.command + ': -', end='')
+        sys.stdout.write(self.command + ': -')
+        sys.stdout.flush()
         tfname = config['tmpdir'] + '/trace.log'
         cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
-        sys.stdout.flush()
         child = None
         self.status = None
         try:
@@ -239,21 +239,13 @@ class CommandAction(Action):
         f.close()
 
         # generate new actions and deps
-        result = []
-        for path in targets:
-            if not self.file_ignored(path):
-                fa = FileAction(path)
-
-                if not fa in self.deps:
-                    self.add_dependency(fa)
-                    result.append(fa)
-
-                    # some files results in new commands
-                    actions = detect_actions(path)
-                    if actions:
-                        for a in actions:
-                            a.add_dependency(fa)
-                        result.extend(actions)
+        fas = set(
+            FileAction(path) for path in targets
+            if not self.file_ignored(path)
+        ).difference(self.deps)
+        for fa in fas:
+            self.add_dependency(fa)
+        result = [a for fa in fas for a in detect_actions(fa.path)] + list(fas)
 
         flog.close()
         if self.status == 0:
@@ -271,14 +263,7 @@ class CommandAction(Action):
         return False
 
     def print_process(self, counter):
-        if counter == 0:
-            sys.stdout.write('-')
-        elif counter == 1:
-            sys.stdout.write('/')
-        elif counter == 2:
-            sys.stdout.write('|')
-        elif counter == 3:
-            sys.stdout.write('\\')
+        sys.stdout.write('-/|\\'[counter])
         sys.stdout.flush()
 
     def print_char(self, c, counter):
@@ -290,11 +275,9 @@ class CommandAction(Action):
 
     def print_log_header(self, flog):
         flog.write('\n')
-        flog.write(('+' * 80) + '\n')
-        flog.write(('+' * 80) + '\n')
+        flog.write(2 * ((80 * '+') + '\n'))
         flog.write(('+' * 10) + str(self) + '\n')
-        flog.write(('+' * 80) + '\n')
-        flog.write(('+' * 80) + '\n')
+        flog.write(2 * ((80 * '+') + '\n'))
 
 
 class TexBibAction(CommandAction):
@@ -463,80 +446,78 @@ config = {
 ################### ORPHAN METHODS ############################################
 ###############################################################################
 def detect_actions(path, auto_only=True):
-    actions = []
+    # find commands
+    commands = config['command_map'].items()
+    ok_auto = (
+        not auto_only or (('auto' in cmd) and (cmd['auto'] is True))
+        for ext, cmd in commands
+    )
+    ok_path = (
+        bool(re.search(ext, path))
+        for ext, cmd in commands
+    )
+    ok = (
+        all(t)
+        for t in zip(ok_auto, ok_path)
+    )
+    commands_filtered = (
+        t
+        for t, o in zip(commands, ok)
+        if o
+    )
 
     # find all matching commands
-    for ext, cmd in config['command_map'].items():
-        # auto filter
-        ok_auto = None
-        if auto_only:
-            if ('auto' in cmd) and (cmd['auto'] is True):
-                ok_auto = True
-            else:
-                ok_auto = False
-        else:
-            ok_auto = True
+    actions = []
+    for ext, cmd in commands_filtered:
+        # get action and args
+        t = globals()[cmd['type']]
+        args = {}
+        if 'args' in cmd:
+            args = cmd['args'].copy()
 
-        # path filter
-        ok_path = None
-        if re.search(ext, path):
-            ok_path = True
-        else:
-            ok_path = False
+        # substitute string arguments
+        s_path = path
+        s_woext, s_ext = os.path.splitext(path)
+        s_dir, s_basename = os.path.split(path)
+        d = {
+            '??': '?',
+            '?b': s_basename,
+            '?d': s_dir,
+            '?e': s_ext,
+            '?p': s_path,
+            '?w': s_woext
+        }
+        pattern = re.compile('|'.join(re.escape(k) for k in d.keys()))
+        for key, value in args.items():
+            if type(value) == str:
+                args[key] = pattern.sub(lambda x: d[x.group()], value)
 
-        # shoot if ok
-        if ok_auto and ok_path:
-            # get action and args
-            t = globals()[cmd['type']]
-            args = {}
-            if 'args' in cmd:
-                args = cmd['args'].copy()
-
-            # substitute string arguments
-            s_path = path
-            s_woext, s_ext = os.path.splitext(path)
-            s_dir, s_basename = os.path.split(path)
-            for key, value in args.items():
-                if type(value) == str:
-                    value = value.replace('??', '\0')
-                    value = value.replace('?p', s_path)
-                    value = value.replace('?w', s_woext)
-                    value = value.replace('?e', s_ext)
-                    value = value.replace('?d', s_dir)
-                    value = value.replace('?b', s_basename)
-                    value = value.replace('\0', '?')
-                    args[key] = value
-
-            # construct Action object
-            actions.append(t(**args))
+        # construct Action object
+        actions.append(t(**args))
 
     return actions
 
 
 def analyze_trace(f):
-    targets = set()
-
-    # analyze all lines
-    for l in f:
-        m = RE_TRACELINE.search(l)
-
-        # valid line?
-        if (m):
-            func = m.group('func')
-            args_raw = m.group('args')
-            args = args_raw.split(', ')
-
-            # can we get the target?
-            if func in TARGET_MAP:
-                target_rel = args[TARGET_MAP[func]].replace('"', '')
-                target = os.path.abspath(target_rel)
-
-                # is this a local file?
-                if os.path.commonprefix([config['basedir'], target]) \
-                        == config['basedir']:
-                    targets.add(os.path.relpath(target))
-
-    return targets
+    matches = (
+        RE_TRACELINE.search(l)
+        for l in f
+    )
+    parsed = (
+        (m.group('func'), m.group('args').split(', '))
+        for m in matches
+        if m
+    )
+    targets = (
+        os.path.abspath(args[TARGET_MAP[func]].replace('"', ''))
+        for func, args in parsed
+        if func in TARGET_MAP
+    )
+    return set(
+        os.path.relpath(t)
+        for t in targets
+        if os.path.commonprefix([config['basedir'], t]) == config['basedir']
+    )
 
 
 def patch_list(orig, patch):
@@ -618,11 +599,8 @@ def restore_state():
         for j in actions:
             o = table[j['id']]
 
-            for y in j['deps']:
-                o.deps.add(table[y])
-
-            for y in j['influences']:
-                o.influences.add(table[y])
+            o.deps.update(table[y] for y in j['deps'])
+            o.influences.update(table[y] for y in j['influences'])
 
             result.add(o)
 
@@ -638,34 +616,18 @@ def restore_state():
 
 
 def initialize_state(files):
-    actions = set()
-
-    for f in files:
-        fa = FileAction(f)
-        ta = detect_actions(f, False)
-        if ta:
-            for a in ta:
-                a.add_dependency(fa)
-            actions.add(fa)
-            actions.update(ta)
-
-    return actions
+    return set(a for f in files for a in detect_actions(f, False))
 
 
 def save_state(actions):
     # assign IDs
-    i = 0
-    for a in actions:
+    for i, a in enumerate(actions):
         a._id = i
-        i = i + 1
-
-    # dump all objects
-    l = [a.to_json() for a in actions]
 
     # build state
     state = {
         'state_version': STATE_VERSION,
-        'actions': l
+        'actions': [a.to_json() for a in actions]
     }
 
     # write to temporary file
@@ -676,6 +638,7 @@ def save_state(actions):
     )
     sf.write(msgpack.packb(state, use_bin_type=True))
     sf.flush()
+    os.fsync(sf)
     sf.close()
 
     # finally overwrite old file
@@ -745,8 +708,7 @@ def main():
 
     # clear log?
     if not config['append_log']:
-        flog = open(config['log'], 'w')
-        flog.close()
+        open(config['log'], 'w').close()
 
     # try to restore or initialize state
     actions = restore_state()
@@ -767,7 +729,7 @@ def main():
     terminate = False
     while changed and not terminate:
         changed = False
-        schedule = sorted([a for a in actions if a.needs_update()],
+        schedule = sorted((a for a in actions if a.needs_update()),
                           key=operator.methodcaller('priority'))
 
         try:
@@ -826,10 +788,9 @@ def main():
             exit(1)
 
     # check status of all actions
-    for a in actions:
-        if a.check_status():
-            print('There are some errors')
-            exit(1)
+    if any(a.check_status() for a in actions):
+        print('There are some errors')
+        exit(1)
 
     print('done')
 
