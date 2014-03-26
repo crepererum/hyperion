@@ -1,0 +1,12 @@
+[MESSAGES CONTROL]
+disable =
+    attribute-defined-outside-init,
+    broad-except,
+    global-statement,
+    no-self-use,
+    missing-docstring,
+    star-args,
+    too-many-branches,
+    too-many-locals,
+    too-many-statements
+

@@ -2,7 +2,8 @@ language: python
 python:
     - "3.3"
 install:
-    - pip install flake8 --use-mirrors
+    - pip install -r ./autotex/requirements.txt
+    - pip install -r ./autotex/requirements-dev.txt
 script:
-    - flake8 -v ./autotex/autotex
+    - pylint --rcfile=./autotex/.pylintrc ./autotex/autotex
 
