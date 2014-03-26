@@ -2,6 +2,7 @@
 
 import argparse
 import binascii
+import contextlib
 import fcntl
 import gzip
 import hashlib
@@ -23,16 +24,16 @@ import yaml
 ################### HELPER LIBS ###############################################
 ###############################################################################
 def get_equivalent(container, item, default=None):
-    for x in container:
-        if x == item:
-            return x
+    for element in container:
+        if element == item:
+            return element
     return default
 
 
 ###############################################################################
 ################### CLASSES ###################################################
 ###############################################################################
-class Action:
+class Action(object):
     def __init__(self, dirty=True):
         self.deps = set()
         self.influences = set()
@@ -42,28 +43,17 @@ class Action:
         return 'unknown action'
 
     def to_json(self):
-        deps = []
-        for x in self.deps:
-            deps.append(x._id)
-
-        influences = []
-        for x in self.influences:
-            influences.append(x._id)
-
-        dirty = self.dirty
-
         state = self.__dict__.copy()
-        del state['_id']
         del state['deps']
         del state['influences']
         del state['dirty']
 
         return {
-            'id': self._id,
+            'id': id(self),
             'type': type(self).__name__,
-            'deps': deps,
-            'influences': influences,
-            'dirty': dirty,
+            'deps': [id(x) for x in self.deps],
+            'influences': [id(x) for x in self.influences],
+            'dirty': self.dirty,
             'state': state
         }
 
@@ -79,14 +69,14 @@ class Action:
 
     def merge(self, other):
         self.deps.update(other.deps)
-        for d in other.deps:
-            d.influences.remove(other)
-            d.influences.add(self)
+        for dep in other.deps:
+            dep.influences.remove(other)
+            dep.influences.add(self)
 
         self.influences.update(other.influences)
-        for i in other.influences:
-            i.deps.remove(other)
-            i.deps.add(self)
+        for infl in other.influences:
+            infl.deps.remove(other)
+            infl.deps.add(self)
 
     def priority(self):
         return 0
@@ -118,7 +108,7 @@ class FileAction(Action):
             return False
 
     def __ne__(self, other):
-        return not (self == other)
+        return not self == other
 
     def __hash__(self):
         return hash(self.path)
@@ -143,19 +133,17 @@ class FileAction(Action):
 
     def calc_file_checksum(self):
         try:
-            f = open(self.path, 'rb')
-            checksum = hashlib.sha256(f.read()).digest()
-            f.close()
-            return checksum
+            with open(self.path, 'rb') as binfile:
+                return hashlib.sha256(binfile.read()).digest()
         except IOError:
             return b''
 
 
 class CommandAction(Action):
-    def __init__(self, command, ignores=[]):
+    def __init__(self, command, ignores=None):
         super().__init__()
         self.command = command
-        self.ignores = ignores
+        self.ignores = ignores or []
         self.status = None
 
     def __eq__(self, other):
@@ -166,7 +154,7 @@ class CommandAction(Action):
             return False
 
     def __ne__(self, other):
-        return not (self == other)
+        return not self == other
 
     def __hash__(self):
         return hash(self.command)
@@ -184,41 +172,40 @@ class CommandAction(Action):
         # run child process and redirect output
         sys.stdout.write(self.command + ': -')
         sys.stdout.flush()
-        tfname = config['tmpdir'] + '/trace.log'
-        cmd = TRACE_CMD + ' ' + tfname + ' ' + self.command
-        child = None
+        tfname = CONFIG['tmpdir'] + '/trace.log'
         self.status = None
-        try:
+        with open(CONFIG['log'], 'a') as flog, \
+                contextlib.ExitStack() as stack:
             child = subprocess.Popen(
-                cmd,
+                TRACE_CMD + ' ' + tfname + ' ' + self.command,
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True
             )
+            stack.callback(child.terminate)
             fcntl.fcntl(child.stdout, fcntl.F_SETFL, os.O_NONBLOCK)
             fcntl.fcntl(child.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
-            flog = open(config['log'], 'a')
             self.print_log_header(flog)
             counter = 0
             while self.status is None:
-                s = child.poll()
+                status_new = child.poll()
                 out = child.stdout.read(1)
                 err = child.stderr.read(1)
-                if (s is not None) and (out == '') and (err == ''):
-                    self.status = s
+                if (status_new is not None) and (out == '') and (err == ''):
+                    self.status = status_new
 
                 changed = False
                 if out != '':
                     flog.write(out)
                     flog.flush()
-                    if config['print_stdout']:
+                    if CONFIG['print_stdout']:
                         self.print_char(out, counter)
                     changed = True
                 if err != '':
                     flog.write(err)
                     flog.flush()
-                    if config['print_stderr']:
+                    if CONFIG['print_stderr']:
                         self.print_char(err, counter)
                     changed = True
 
@@ -228,26 +215,22 @@ class CommandAction(Action):
                     self.print_process(counter)
                 else:
                     time.sleep(0.05)
-        except KeyboardInterrupt:
-            if child:
-                child.terminate()
-            raise
+            stack.pop_all()
 
         # get and analyze trace log
-        f = open(tfname)
-        targets = analyze_trace(f)
-        f.close()
+        with open(tfname) as tracefile:
+            targets = analyze_trace(tracefile)
 
         # generate new actions and deps
         fas = set(
-            FileAction(path) for path in targets
+            FileAction(path)
+            for path in targets
             if not self.file_ignored(path)
         ).difference(self.deps)
-        for fa in fas:
-            self.add_dependency(fa)
+        for faction in fas:
+            self.add_dependency(faction)
         result = [a for fa in fas for a in detect_actions(fa.path)] + list(fas)
 
-        flog.close()
         if self.status == 0:
             print('\bOK')
         else:
@@ -256,21 +239,20 @@ class CommandAction(Action):
         return result
 
     def file_ignored(self, path):
-        for ext in self.ignores:
-            if re.search(ext, path):
-                return True
-
-        return False
+        return any(
+            re.search(ext, path)
+            for ext in self.ignores
+        )
 
     def print_process(self, counter):
         sys.stdout.write('-/|\\'[counter])
         sys.stdout.flush()
 
-    def print_char(self, c, counter):
+    def print_char(self, char, counter):
         sys.stdout.write('\b')
-        if c == '\n':
+        if char == '\n':
             sys.stdout.write(' ')
-        sys.stdout.write(c)
+        sys.stdout.write(char)
         self.print_process(counter)
 
     def print_log_header(self, flog):
@@ -290,11 +272,11 @@ class TexBibAction(CommandAction):
 
 
 class TexCompileAction(CommandAction):
-    def __init__(self, path, engine='luatex', latex=True, format='pdf'):
+    def __init__(self, path, engine='luatex', latex=True, output_format='pdf'):
         self.path = path
         self.engine = engine.lower()
         self.latex = latex
-        self.format = format.lower()
+        self.output_format = output_format.lower()
 
         cmd = ''
         if self.engine == 'luatex':
@@ -305,10 +287,10 @@ class TexCompileAction(CommandAction):
 
             cmd = cmd + ' --file-line-error --interaction=nonstopmode'
 
-            if self.format in ['dvi', 'pdf']:
-                cmd = cmd + ' --output-format=' + self.format
+            if self.output_format in ['dvi', 'pdf']:
+                cmd = cmd + ' --output-format=' + self.output_format
             else:
-                raise Exception('Format(' + self.format
+                raise Exception('Format(' + self.output_format
                                 + ') is not supported by LuaTeX!')
         elif self.engine == 'xetex':
             if self.latex:
@@ -318,20 +300,20 @@ class TexCompileAction(CommandAction):
 
             cmd = cmd + ' -file-line-error -interaction=batchmode'
 
-            if self.format == 'pdf':
+            if self.output_format == 'pdf':
                 pass
-            elif self.format == 'xdv':
+            elif self.output_format == 'xdv':
                 cmd = cmd + ' -no-pdf'
             else:
-                raise Exception('Format(' + self.format
+                raise Exception('Format(' + self.output_format
                                 + ') is not supported by XeTeX!')
         elif self.engine == 'pdftex':
-            if self.format == 'pdf':
+            if self.output_format == 'pdf':
                 cmd = 'pdf'
-            elif self.format == 'dvi':
+            elif self.output_format == 'dvi':
                 cmd = ''
             else:
-                raise Exception('Format(' + self.format
+                raise Exception('Format(' + self.output_format
                                 + ') is not supported by pdfTeX!')
 
             if self.latex:
@@ -376,7 +358,7 @@ RE_TRACELINE = re.compile(r"""
                            # additional infos (dropped)
     """, re.VERBOSE)
 
-STATE_VERSION = 1
+STATE_VERSION = 2
 
 TARGET_MAP = {
     'access':    0,
@@ -400,9 +382,9 @@ YAML_REMOVE = '?-'
 ###############################################################################
 ################### GLOBALS ###################################################
 ###############################################################################
-_tmpdir = tempfile.TemporaryDirectory()
+TMPDIR = tempfile.TemporaryDirectory()
 
-config = {
+CONFIG = {
     'append_log': False,
     'basedir': os.path.abspath(os.getcwd()),
     'command_map': {
@@ -437,7 +419,7 @@ config = {
     'print_stdout': False,
     'print_stderr': True,
     'state': '.autotex.state',
-    'tmpdir': _tmpdir.name,
+    'tmpdir': TMPDIR.name,
     'verbose': False
 }
 
@@ -447,7 +429,7 @@ config = {
 ###############################################################################
 def detect_actions(path, auto_only=True):
     # find commands
-    commands = config['command_map'].items()
+    commands = CONFIG['command_map'].items()
     ok_auto = (
         not auto_only or (('auto' in cmd) and (cmd['auto'] is True))
         for ext, cmd in commands
@@ -456,30 +438,28 @@ def detect_actions(path, auto_only=True):
         bool(re.search(ext, path))
         for ext, cmd in commands
     )
-    ok = (
+    ok_all = (
         all(t)
         for t in zip(ok_auto, ok_path)
     )
     commands_filtered = (
-        t
-        for t, o in zip(commands, ok)
+        cmd
+        for (ext, cmd), o in zip(commands, ok_all)
         if o
     )
 
     # find all matching commands
     actions = []
-    for ext, cmd in commands_filtered:
+    for cmd in commands_filtered:
         # get action and args
-        t = globals()[cmd['type']]
-        args = {}
-        if 'args' in cmd:
-            args = cmd['args'].copy()
+        actiontype = globals()[cmd['type']]
+        args = cmd['args'].copy() if 'args' in cmd else {}
 
         # substitute string arguments
         s_path = path
         s_woext, s_ext = os.path.splitext(path)
         s_dir, s_basename = os.path.split(path)
-        d = {
+        replace_dict = {
             '??': '?',
             '?b': s_basename,
             '?d': s_dir,
@@ -487,21 +467,27 @@ def detect_actions(path, auto_only=True):
             '?p': s_path,
             '?w': s_woext
         }
-        pattern = re.compile('|'.join(re.escape(k) for k in d.keys()))
+        pattern = re.compile('|'.join(
+            re.escape(k)
+            for k in replace_dict.keys()
+        ))
         for key, value in args.items():
             if type(value) == str:
-                args[key] = pattern.sub(lambda x: d[x.group()], value)
+                args[key] = pattern.sub(
+                    lambda x: replace_dict[x.group()],
+                    value
+                )
 
         # construct Action object
-        actions.append(t(**args))
+        actions.append(actiontype(**args))
 
     return actions
 
 
-def analyze_trace(f):
+def analyze_trace(tracefile):
     matches = (
         RE_TRACELINE.search(l)
-        for l in f
+        for l in tracefile
     )
     parsed = (
         (m.group('func'), m.group('args').split(', '))
@@ -516,114 +502,111 @@ def analyze_trace(f):
     return set(
         os.path.relpath(t)
         for t in targets
-        if os.path.commonprefix([config['basedir'], t]) == config['basedir']
+        if os.path.commonprefix([CONFIG['basedir'], t]) == CONFIG['basedir']
     )
 
 
 def patch_list(orig, patch):
-    l = []
-    if orig:
-        l = orig.copy()
-
+    # parse patch
+    blacklist = set()
+    extension = []
     for entry in patch:
         if entry is not None:
             if (type(entry) == str) and entry.startswith(YAML_REMOVE):
-                l = [x for x in l if x != entry[len(YAML_REMOVE):]]
+                blacklist.add(entry[len(YAML_REMOVE):])
             elif (type(entry) == str) and entry.startswith(YAML_PATCH):
                 # ignore
                 pass
             else:
-                l.append(entry)
+                extension.append(entry)
 
-    return l
+    # apply patch
+    base = [x for x in orig if x not in blacklist] if orig else []
+    return base + extension
 
 
 def patch_dict(orig, patch):
-    d = {}
-    if orig:
-        d = orig.copy()
+    base = orig or {}
 
+    # parse patch
+    blacklist = set()
+    replace = {}
+    overwrite = {}
     for key, value in patch.items():
         if value is not None:
             if key.startswith(YAML_REMOVE):
-                tmp_key = key[len(YAML_REMOVE):]
-                d.pop(tmp_key, None)
+                blacklist.add(key[len(YAML_REMOVE):])
             elif value == YAML_REMOVE:
-                d.pop(key, None)
+                blacklist.add(key)
             elif key == YAML_PATCH:
-                # ignore
+                # ignore, important to avoid empty keys
                 pass
             elif key.startswith(YAML_PATCH) and (type(value) == dict):
                 tmp_key = key[len(YAML_PATCH):]
-                orig = None
-                if (tmp_key in d) and (type(d[tmp_key]) == dict):
-                    orig = d[tmp_key]
-                d[tmp_key] = patch_dict(orig, value)
-            elif key.startswith(YAML_PATCH) and (type(value) == list):
-                tmp_key = key[len(YAML_PATCH):]
-                orig = None
-                if (tmp_key in d) and (type(d[tmp_key]) == list):
-                    orig = d[tmp_key]
-                d[tmp_key] = patch_list(orig, value)
+                if type(value) == dict:
+                    suborig = base[tmp_key] \
+                        if tmp_key in base and type(base[tmp_key]) == dict \
+                        else None
+                    replace[tmp_key] = patch_dict(suborig, value)
+                elif type(value) == list:
+                    suborig = base[tmp_key] \
+                        if tmp_key in base and type(base[tmp_key]) == list \
+                        else None
+                    replace[tmp_key] = patch_list(suborig, value)
             else:
-                d[key] = value
+                overwrite[key] = value
 
-    return d
+    # apply patch
+    return dict(
+        (k, v)
+        for k, v in base.items()
+        if not k in blacklist
+    ).update(replace).update(overwrite)
 
 
 def restore_state():
-    actions = None
-    sf = None
+    # load data from file
+    with gzip.open(CONFIG['state'], 'rb') as statefile:
+        state = msgpack.unpackb(statefile.read(), encoding='utf-8')
 
-    try:
-        # load data from file
-        sf = gzip.open(config['state'], 'rb')
-        state = msgpack.unpackb(sf.read(), encoding='utf-8')
+    # version check
+    if not 'state_version' in state \
+            or state['state_version'] != STATE_VERSION:
+        raise Exception('Incompatible state version!')
 
-        # version check
-        if not 'state_version' in state \
-                or state['state_version'] != STATE_VERSION:
-            raise Exception('Incompatible state version!')
+    # create objects
+    actions = state['actions']
+    table = {}
+    for j in actions:
+        actiontype = globals()[j['type']]
+        obj = actiontype.__new__(actiontype)
+        obj.from_json(j)
+        table[j['id']] = obj
 
-        # create objects
-        actions = state['actions']
-        table = {}
-        for j in actions:
-            t = globals()[j['type']]
-            obj = t.__new__(t)
-            obj.from_json(j)
-            table[j['id']] = obj
+    # restore dependency graph
+    for j in actions:
+        action = table[j['id']]
+        action.deps.update(table[y] for y in j['deps'])
+        action.influences.update(table[y] for y in j['influences'])
 
-        # restore dependency graph
-        result = set()
-        for j in actions:
-            o = table[j['id']]
+    print('State restored from file')
+    return set(table.values())
 
-            o.deps.update(table[y] for y in j['deps'])
-            o.influences.update(table[y] for y in j['influences'])
 
-            result.add(o)
+def initialize_state(files):
+    complete = (a for f in files for a in detect_actions(f, False))
+    actions = set()
 
-        actions = result
-        print('State restored from file')
-    except Exception:
-        pass
-    finally:
-        if sf:
-            sf.close()
+    for action in complete:
+        if action in actions:
+            get_equivalent(actions, action).merge(action)
+        else:
+            actions.add(action)
 
     return actions
 
 
-def initialize_state(files):
-    return set(a for f in files for a in detect_actions(f, False))
-
-
 def save_state(actions):
-    # assign IDs
-    for i, a in enumerate(actions):
-        a._id = i
-
     # build state
     state = {
         'state_version': STATE_VERSION,
@@ -631,22 +614,21 @@ def save_state(actions):
     }
 
     # write to temporary file
-    state_tmp = config['state'] + '.new'
-    sf = gzip.GzipFile(
-        filename=config['state'],
+    state_tmp = CONFIG['state'] + '.new'
+    with gzip.GzipFile(
+        filename=CONFIG['state'],
         fileobj=open(state_tmp, 'wb')
-    )
-    sf.write(msgpack.packb(state, use_bin_type=True))
-    sf.flush()
-    os.fsync(sf)
-    sf.close()
+    ) as statefile:
+        statefile.write(msgpack.packb(state, use_bin_type=True))
+        statefile.flush()
+        os.fsync(statefile)
 
     # finally overwrite old file
-    shutil.move(state_tmp, config['state'])
+    shutil.move(state_tmp, CONFIG['state'])
 
 
 def main():
-    global config
+    global CONFIG
 
     # parse command line arguments
     parser = argparse.ArgumentParser(
@@ -695,26 +677,23 @@ def main():
         args.files = None
 
     # generate config
-    cf = None
     try:
-        cf = open(args.config)
-        config = patch_dict(config, yaml.load(cf.read()))
+        with open(args.CONFIG) as configfile:
+            CONFIG = patch_dict(CONFIG, yaml.load(configfile.read()))
     except Exception:
         pass
-    finally:
-        if cf:
-            cf.close()
-    config = patch_dict(config, vars(args))
+    CONFIG = patch_dict(CONFIG, vars(args))
 
     # clear log?
-    if not config['append_log']:
-        open(config['log'], 'w').close()
+    if not CONFIG['append_log']:
+        open(CONFIG['log'], 'w').close()
 
     # try to restore or initialize state
-    actions = restore_state()
-    if not actions:
-        if config['files']:
-            actions = initialize_state(config['files'])
+    try:
+        actions = restore_state()
+    except Exception:
+        if 'files' in CONFIG:
+            actions = initialize_state(CONFIG['files'])
         else:
             parser.print_usage()
             exit(1)
@@ -734,15 +713,15 @@ def main():
 
         try:
             # update actions
-            for a in schedule:
-                novel = a.update()
+            for action in schedule:
+                novel = action.update()
 
                 # merge new actions to existing ones
-                for n in novel:
-                    if n in actions:
-                        get_equivalent(actions, n).merge(n)
+                for new in novel:
+                    if new in actions:
+                        get_equivalent(actions, new).merge(new)
                     else:
-                        actions.add(n)
+                        actions.add(new)
 
                 changed = True
         except KeyboardInterrupt:
@@ -752,24 +731,24 @@ def main():
             terminate = True
 
         # debug prints
-        if config['verbose']:
+        if CONFIG['verbose']:
             print()
             print('Tracked commands:')
-            for a in actions:
-                print(str(a))
+            for action in actions:
+                print(str(action))
             print()
 
         # safe state
         if changed:
             save_state(actions)
-        elif config['continuously'] and not terminate:
+        elif CONFIG['continuously'] and not terminate:
             sys.stdout.write('Nothing to do, wait')
             sys.stdout.flush()
             try:
                 while not any(a.needs_update() for a in actions):
                     sys.stdout.write('.')
                     sys.stdout.flush()
-                    time.sleep(config['continuously_wait'])
+                    time.sleep(CONFIG['continuously_wait'])
                 print('got something!')
                 changed = True
                 rounds = 0
@@ -781,8 +760,8 @@ def main():
             continue
 
         rounds = rounds + 1
-        if (config['max_rounds'] != 0) \
-                and (rounds > config['max_rounds']) \
+        if (CONFIG['max_rounds'] != 0) \
+                and (rounds > CONFIG['max_rounds']) \
                 and not terminate:
             print('Error: Reached maximum number of rounds!')
             exit(1)
