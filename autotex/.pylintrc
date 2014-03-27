@@ -1,6 +1,5 @@
 [MESSAGES CONTROL]
 disable =
-    attribute-defined-outside-init,
     broad-except,
     global-statement,
     missing-docstring,

@@ -45,7 +45,29 @@ class Action(object):
         return 'unknown action'
 
     def to_json(self):
-        state = self.__dict__.copy()
+        attributes = (
+            (a, getattr(self, a))
+            for a in dir(self)
+            if not a.startswith('__')
+        )
+        state = dict(
+            (k, v)
+            for k, v in attributes
+            if type(v) in [
+                bool,
+                bytearray,
+                bytes,
+                complex,
+                dict,
+                float,
+                frozenset,
+                int,
+                list,
+                set,
+                str,
+                tuple
+            ]
+        )
         del state['deps']
         del state['influences']
         del state['dirty']
@@ -60,7 +82,8 @@ class Action(object):
         }
 
     def from_json(self, j):
-        self.__dict__ = j['state']
+        for name, value in j['state'].items():
+            setattr(self, name, value)
         self.deps = set()
         self.influences = set()
         self.dirty = j['dirty']
