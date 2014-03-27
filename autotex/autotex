@@ -10,12 +10,14 @@ import msgpack
 import operator
 import os
 import os.path
+import pyinotify
 import re
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import yaml
 
@@ -121,11 +123,14 @@ class FileAction(Action):
 
     def needs_update(self):
         return super().needs_update() \
-            or (self.checksum != self.calc_file_checksum())
+            or (self.path not in INOTIFY_FILTER
+                and self.checksum != self.calc_file_checksum())
 
     def update(self):
         self.checksum = self.calc_file_checksum()
         checksum_string = str(binascii.hexlify(self.checksum), 'utf8')
+        if self.path not in INOTIFY_FILTER:
+            INOTIFY_FILTER.add(self.path)
         print('File changed: "' + self.path
               + '" (Checksum=' + checksum_string + ')')
         super().update()
@@ -343,6 +348,17 @@ class TexIndexAction(CommandAction):
                          + ' ' + self.path)
 
 
+class INotifyHandler(pyinotify.ProcessEvent):
+    def process_default(self, event):
+        with INOTIFY_CONDITION:
+            path = os.path.relpath(event.pathname)
+            if CONFIG['verbose']:
+                print(path + ': ' + event.maskname)
+            if path in INOTIFY_FILTER:
+                INOTIFY_FILTER.remove(path)
+            INOTIFY_CONDITION.notify_all()
+
+
 # =============================================================================
 # ================= CONSTANTS =================================================
 # =============================================================================
@@ -384,6 +400,10 @@ YAML_REMOVE = '?-'
 # =============================================================================
 TMPDIR = tempfile.TemporaryDirectory()
 
+INOTIFY_CONDITION = threading.Condition()
+
+INOTIFY_FILTER = set()
+
 CONFIG = {
     'append_log': False,
     'basedir': os.path.abspath(os.getcwd()),
@@ -413,7 +433,7 @@ CONFIG = {
         }
     },
     'continuously': False,
-    'continuously_wait': 3,
+    'continuously_wait': 0.25,
     'log': 'autotex.log',
     'max_rounds': 10,
     'print_stdout': False,
@@ -705,69 +725,93 @@ def main():
         print('Error: no matching action for this file!')
         exit(1)
 
-    # main loop (fixpoint iteration)
-    changed = True
-    rounds = 0
-    terminate = False
-    while changed and not terminate:
-        changed = False
-        schedule = sorted((a for a in actions if a.needs_update()),
-                          key=operator.methodcaller('priority'))
+    # setup inotify
+    mask = pyinotify.EventsCodes.ALL_FLAGS['IN_ATTRIB'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_CLOSE_WRITE'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_CREATE'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_DELETE'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_DELETE_SELF'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_MODIFY'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_MOVE_SELF'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_MOVED_FROM'] \
+        | pyinotify.EventsCodes.ALL_FLAGS['IN_MOVED_TO']
+    watch_manager = pyinotify.WatchManager()
+    notifier = pyinotify.ThreadedNotifier(watch_manager, INotifyHandler())
+    # double with to avoid crashing pylint
+    with contextlib.ExitStack() as stack:
+        with INOTIFY_CONDITION:
+            stack.callback(notifier.stop)
+            notifier.start()
+            watch_manager.add_watch(
+                CONFIG['basedir'],
+                mask,
+                rec=True
+            )
 
-        try:
-            # update actions
-            for action in schedule:
-                novel = action.update()
+            # main loop (fixpoint iteration)
+            changed = True
+            rounds = 0
+            terminate = False
+            while changed and not terminate:
+                changed = False
+                schedule = sorted((a for a in actions if a.needs_update()),
+                                  key=operator.methodcaller('priority'))
 
-                # merge new actions to existing ones
-                for new in novel:
-                    if new in actions:
-                        get_equivalent(actions, new).merge(new)
-                    else:
-                        actions.add(new)
+                try:
+                    # update actions
+                    for action in schedule:
+                        novel = action.update()
 
-                changed = True
-        except KeyboardInterrupt:
-            signal.signal(signal.SIGINT, signal.SIG_IGN)
-            print()
-            print('Interrupted')
-            terminate = True
+                        # merge new actions to existing ones
+                        for new in novel:
+                            if new in actions:
+                                get_equivalent(actions, new).merge(new)
+                            else:
+                                actions.add(new)
 
-        # debug prints
-        if CONFIG['verbose']:
-            print()
-            print('Tracked commands:')
-            for action in actions:
-                print(str(action))
-            print()
+                        changed = True
+                except KeyboardInterrupt:
+                    signal.signal(signal.SIGINT, signal.SIG_IGN)
+                    print()
+                    print('Interrupted')
+                    terminate = True
 
-        # safe state
-        if changed:
-            save_state(actions)
-        elif CONFIG['continuously'] and not terminate:
-            sys.stdout.write('Nothing to do, wait')
-            sys.stdout.flush()
-            try:
-                while not any(a.needs_update() for a in actions):
-                    sys.stdout.write('.')
+                # debug prints
+                if CONFIG['verbose']:
+                    print()
+                    print('Tracked commands:')
+                    for action in actions:
+                        print(str(action))
+                    print()
+
+                # safe state
+                if changed:
+                    save_state(actions)
+                elif CONFIG['continuously'] and not terminate:
+                    sys.stdout.write('Nothing to do, wait')
                     sys.stdout.flush()
-                    time.sleep(CONFIG['continuously_wait'])
-                print('got something!')
-                changed = True
-                rounds = 0
-            except KeyboardInterrupt:
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-                print()
-                print('Interrupted')
-                terminate = True
-            continue
+                    try:
+                        while not any(a.needs_update() for a in actions):
+                            sys.stdout.write('.')
+                            sys.stdout.flush()
+                            INOTIFY_CONDITION.wait()
+                            time.sleep(CONFIG['continuously_wait'])
+                        print('got something!')
+                        changed = True
+                        rounds = 0
+                    except KeyboardInterrupt:
+                        signal.signal(signal.SIGINT, signal.SIG_IGN)
+                        print()
+                        print('Interrupted')
+                        terminate = True
+                    continue
 
-        rounds = rounds + 1
-        if (CONFIG['max_rounds'] != 0) \
-                and (rounds > CONFIG['max_rounds']) \
-                and not terminate:
-            print('Error: Reached maximum number of rounds!')
-            exit(1)
+                rounds = rounds + 1
+                if (CONFIG['max_rounds'] != 0) \
+                        and (rounds > CONFIG['max_rounds']) \
+                        and not terminate:
+                    print('Error: Reached maximum number of rounds!')
+                    exit(1)
 
     # check status of all actions
     if any(a.check_status() for a in actions):

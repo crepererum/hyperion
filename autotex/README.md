@@ -32,6 +32,7 @@ The following software is required and should be installed before using **autote
  - [*Python 3*](https://www.python.org/): this script is written in Python 3, so there is no way around it ;)
  - [*PyYAML*](http://pyyaml.org/): reading and writing of *YAML* files
  - [*msgpack-python*](http://msgpack.org/): storing the internal state
+ - [*pyinotify*](https://github.com/seb-m/pyinotify): monitoring file changes
  - Linux operating system with `strace`: Used for tracing used files, support for other systems may be implemented later
 
 ##Usage
@@ -92,11 +93,11 @@ Activates continues mode.
 **Default:** `false`
 
 ###`continuously_wait`
-Wait time for continues mode in seconds.
+Wait time after a change was detected in continues mode. This can helpful to cut down the number of file checks after editors made multiple file operations.
 
 **Values:** seconds as float value
 
-**Default:** 3
+**Default:** 0.25
 
 ###`log`
 Log file path
