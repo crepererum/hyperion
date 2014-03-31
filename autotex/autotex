@@ -139,7 +139,7 @@ class FileAction(Action):
         return hash(self.path)
 
     def __str__(self):
-        return 'watch "' + self.path + '"'
+        return 'watch "{}"'.format(self.path)
 
     def priority(self):
         return -100
@@ -154,8 +154,10 @@ class FileAction(Action):
         checksum_string = str(binascii.hexlify(self.checksum), 'utf8')
         if self.path not in INOTIFY_FILTER:
             INOTIFY_FILTER.add(self.path)
-        print('File changed: "' + self.path
-              + '" (Checksum=' + checksum_string + ')')
+        print('File changed: "{}" (Checksum={})'.format(
+            self.path,
+            checksum_string
+        ))
         super().update()
         return []
 
@@ -262,7 +264,7 @@ class CommandAction(Action):
         if self.status == 0:
             print('\bOK')
         else:
-            print('\bFAILED(' + str(self.status) + ')')
+            print('\bFAILED({})'.format(self.status))
         super().update()
         return result
 
