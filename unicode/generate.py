@@ -7,35 +7,35 @@ import re
 
 """Helper map for roman number convertion"""
 NUMERAL_MAP = (
-    (10000000,  'S'),
-    ( 9000000, 'FS'),
-    ( 5000000,  'T'),
-    ( 4000000, 'FT'),
-    ( 1000000,  'F'),
-    (  900000, 'AF'),
-    (  500000,  'G'),
-    (  400000, 'AG'),
-    (  100000,  'A'),
-    (   90000, 'ZA'),
-    (   50000,  'B'),
-    (   40000, 'ZB'),
-    (   10000,  'Z'),
-    (    9000, 'MZ'),
-    (    5000,  'Y'),
-    (    4000, 'MY'),
-    (    1000,  'M'),
-    (     900, 'CM'),
-    (     500,  'D'),
-    (     400, 'CD'),
-    (     100,  'C'),
-    (      90, 'XC'),
-    (      50,  'L'),
-    (      40, 'XL'),
-    (      10,  'X'),
-    (       9, 'IX'),
-    (       5,  'V'),
-    (       4, 'IV'),
-    (       1,  'I')
+    (10000000, 'S'),
+    (9000000, 'FS'),
+    (5000000, 'T'),
+    (4000000, 'FT'),
+    (1000000, 'F'),
+    (900000, 'AF'),
+    (500000, 'G'),
+    (400000, 'AG'),
+    (100000, 'A'),
+    (90000, 'ZA'),
+    (50000, 'B'),
+    (40000, 'ZB'),
+    (10000, 'Z'),
+    (9000, 'MZ'),
+    (5000, 'Y'),
+    (4000, 'MY'),
+    (1000, 'M'),
+    (900, 'CM'),
+    (500, 'D'),
+    (400, 'CD'),
+    (100, 'C'),
+    (90, 'XC'),
+    (50, 'L'),
+    (40, 'XL'),
+    (10, 'X'),
+    (9, 'IX'),
+    (5, 'V'),
+    (4, 'IV'),
+    (1, 'I')
 )
 
 
@@ -170,7 +170,15 @@ def print_header(s, f):
     f.write('%--------------------\n')
 
 
-def create_new_package(pname, dout, version, date, description, fdocall=None, fall=None):
+def create_new_package(
+        pname,
+        dout,
+        version,
+        date,
+        description,
+        fdocall=None,
+        fall=None
+        ):
     """Creates a new LaTeX package
 
     Args:
@@ -189,37 +197,50 @@ def create_new_package(pname, dout, version, date, description, fdocall=None, fa
     f = open(dout + '/' + pname + '.sty', 'w')
     fdoc = open(dout + '/' + pname + '.tex', 'w')
 
-    f.write('\\NeedsTeXFormat{LaTeX2e}\n')
-    f.write('\\ProvidesPackage{' + pname + '}[' + date
-            + ' v' + version + ' ' + description + ']\n')
+    f.write(
+        '\\NeedsTeXFormat{{LaTeX2e}}\n'
+        '\\ProvidesPackage{{{0}}}[{1} v{2} {3}]\n'
+        .format(pname, date, version, description)
+    )
 
     print_header('requirements', f)
-    f.write('\\RequirePackage{ifluatex}\n')
-    f.write('\\RequirePackage{ifxetex}\n')
-    f.write('\\ifluatex\n')
-    f.write('\\else\n')
-    f.write('\\ifxetex\n')
-    f.write('\\else\n')
-    f.write('\\ClassError{' + pname + '}{LuaLaTeX or XeLaTeX required!}%\n')
-    f.write('{Please use LuaLaTeX or XeLaTeX. (no pdfTeX support, sorry)')
-    f.write('See http://www.luatex.org/ and http://xetex.sourceforge.net/}\n')
-    f.write('\\fi\n')
-    f.write('\\fi\n')
+    f.write(
+        '\\RequirePackage{{ifluatex}}\n'
+        '\\RequirePackage{{ifxetex}}\n'
+        '\\ifluatex\n'
+        '\\else\n'
+        '\\ifxetex\n'
+        '\\else\n'
+        '\\ClassError{{{0}}}{{LuaLaTeX or XeLaTeX required!}}%\n'
+        '{{Please use LuaLaTeX or XeLaTeX. (no pdfTeX support, sorry)'
+        'See http://www.luatex.org/ and http://xetex.sourceforge.net/}}\n'
+        '\\fi\n'
+        '\\fi\n'
+        .format(pname)
+    )
 
     if fall:
-        fall.write('\\RequirePackage{' + pname + '}\n')
+        fall.write(
+            '\\RequirePackage{{{0}}}\n'
+            .format(pname)
+        )
 
         print_header('style', f)
         pall = package_name('all')
-        f.write('\\newcommand{\\' + pname + '@style}[1]{#1}\n')
-        f.write('\\newcommand{\\' + pname + 'Style}[1]{\\renewcommand{\\' + pname + '@style}[1]{{#1##1}}}\n')
-        f.write('\\@ifundefined{' + pall + 'Style}%\n')
-        f.write('{%\n')
-        f.write('\\newcommand{\\' + pall + 'Style}[1]{\\' + pname + 'Style{#1}}%\n')
-        f.write('}{%\n')
-        f.write('\\let\\' + pname + '@list\\' + pall + 'Style%\n')
-        f.write('\\renewcommand{\\' + pall + 'Style}[1]{\\' + pname + 'Style{#1}\\' + pname + '@list{#1}}%\n')
-        f.write('}\n')
+        f.write(
+            '\\newcommand{{\\{0}@style}}[1]{{#1}}\n'
+            '\\newcommand{{\\{0}Style}}[1]'
+            '{{\\renewcommand{{\\{0}@style}}[1]{{{{#1##1}}}}}}\n'
+            '\\@ifundefined{{{1}Style}}%\n'
+            '{{%\n'
+            '\\newcommand{{\\{1}Style}}[1]{{\\{0}Style{{#1}}}}%\n'
+            '}}{{%\n'
+            '\\let\\{0}@list\\{1}Style%\n'
+            '\\renewcommand{{\\{1}Style}}[1]'
+            '{{\\{0}Style{{#1}}\\{0}@list{{#1}}}}%\n'
+            '}}\n'
+            .format(pname, pall)
+        )
 
         fdoc.write('\\section{' + pname + '}\n')
         fdocall.write('\\include{' + pname + '}\n')
@@ -249,8 +270,10 @@ def finalize_package(f, fdoc, all=False):
         if all:
             doc_end(fdoc)
         else:
-            fdoc.write('\\endinput\n')
-            fdoc.write('\n')
+            fdoc.write(
+                '\\endinput\n'
+                '\n'
+            )
             fdoc.close()
 
 
@@ -261,27 +284,27 @@ def doc_begin(fdoc):
         fdoc: documentation TeX file
 
     """
-    fdoc.write('\\documentclass{hyperiondoc}\n')
-    fdoc.write('\n')
-
-    fdoc.write('\\usepackage{adjustbox}\n')
-    fdoc.write('\\usepackage{' + package_name('all') + '}\n')
-    fdoc.write('\\newfontfamily{\\symbola}{Symbola}\n')
-    fdoc.write('\\USymbolAllStyle{\\symbola}\n')
-    fdoc.write('\n')
-
-    fdoc.write('\\newcommand{\\symboldemo}[3]{%\n')
-    fdoc.write('    \\noindent\\begin{minipage}[c]{.1\\textwidth}\n')
-    fdoc.write('        \\centering\\textlarger[2]{#3}\n')
-    fdoc.write('    \\end{minipage}%\n')
-    fdoc.write('    \\begin{minipage}{.8\\textwidth}\n')
-    fdoc.write('        $\\mathtt{0x#1}$\\\\[-0.4em]')
-    fdoc.write('        \\adjustbox{max width=.9\\textwidth}{\\code{\\bs #2}}\n')
-    fdoc.write('    \\end{minipage}\\\\[0.6em]\n')
-    fdoc.write('}\n')
-    fdoc.write('\n')
-
-    fdoc.write('\\begin{document}\n')
+    fdoc.write(
+        '\\documentclass{{hyperiondoc}}\n'
+        '\n'
+        '\\usepackage{{adjustbox}}\n'
+        '\\usepackage{{{0}}}\n'
+        '\\newfontfamily{{\\symbola}}{{Symbola}}\n'
+        '\\USymbolAllStyle{{\\symbola}}\n'
+        '\n'
+        '\\newcommand{{\\symboldemo}}[3]{{%\n'
+        '    \\noindent\\begin{{minipage}}[c]{{.1\\textwidth}}\n'
+        '        \\centering\\textlarger[2]{{#3}}\n'
+        '    \\end{{minipage}}%\n'
+        '    \\begin{{minipage}}{{.8\\textwidth}}\n'
+        '        $\\mathtt{{0x#1}}$\\\\[-0.4em]\n'
+        '        \\adjustbox{{max width=.9\\textwidth}}{{\\code{{\\bs #2}}}}\n'
+        '    \\end{{minipage}}\\\\[0.6em]\n'
+        '}}\n'
+        '\n'
+        '\\begin{{document}}\n'
+        .format(package_name('all'))
+    )
 
 
 def doc_end(fdoc):
@@ -306,8 +329,14 @@ def print_symbol(f, name, hnumber, pname, fdoc):
         fdoc: documentation .tex file
 
     """
-    f.write('\\newcommand{\\' + name + '}{\\' + pname + '@style{\\symbol{"' + hnumber + '}}}\n')
-    fdoc.write('\\symboldemo{' + hnumber + '}{' + name + '}{\\' + name + '}\n')
+    f.write(
+        '\\newcommand{{\\{0}}}{{\\{1}@style{{\\symbol{{"{2}}}}}}}\n'
+        .format(name, pname, hnumber)
+    )
+    fdoc.write(
+        '\\symboldemo{{{0}}}{{{1}}}{{\\{1}}}\n'
+        .format(hnumber, name)
+    )
 
 
 def process_data(fdata, blocks, dout, version, date):
@@ -366,7 +395,8 @@ def process_data(fdata, blocks, dout, version, date):
                 dout=dout,
                 version=version,
                 date=date,
-                description='Provides macros for Unicode symbols of block ' + block['name'],
+                description='Provides macros for Unicode symbols of block {0}'
+                .format(block['name']),
                 fall=fall,
                 fdocall=fdocall
             )
@@ -380,7 +410,8 @@ def process_data(fdata, blocks, dout, version, date):
 def main():
     parser = argparse.ArgumentParser(
         description='Creates Unicode symbol macros for LuaLaTeX and XeLaTeX',
-        epilog='To get the required files, go to http://www.unicode.org/Public/UCD/latest/ucd/',
+        epilog='To get the required files, go to'
+        'http://www.unicode.org/Public/UCD/latest/ucd/',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
