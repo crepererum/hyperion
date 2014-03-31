@@ -5,7 +5,6 @@ from datetime import date
 import os
 import re
 
-"""Helper map for roman number convertion"""
 NUMERAL_MAP = (
     (10000000, 'S'),
     (9000000, 'FS'),
@@ -39,11 +38,11 @@ NUMERAL_MAP = (
 )
 
 
-def int_to_roman(i):
+def int_to_roman(number):
     """Converts integer to roman number string
 
     Args:
-        i: positive integer
+        number: positive integer
 
     Returns:
         Roman string representation
@@ -52,9 +51,9 @@ def int_to_roman(i):
     result = []
 
     for integer, numeral in NUMERAL_MAP:
-        count = i // integer
+        count = number // integer
         result.append(numeral * count)
-        i -= integer * count
+        number -= integer * count
 
     return ''.join(result)
 
@@ -72,38 +71,38 @@ def parse_blocks(fblocks):
     print('Parse blocks: ', end='')
     result = []
 
-    for l in fblocks:
-        s = l.strip()
-        if len(s) > 0 and s[0] != '#':
-            m = re.match(r"([0-9A-F]+)\.{2}([0-9A-F]+);\s+(.+)", s)
+    for line in fblocks:
+        stripped = line.strip()
+        if len(stripped) > 0 and stripped[0] != '#':
+            match = re.match(r"([0-9A-F]+)\.{2}([0-9A-F]+);\s+(.+)", stripped)
             result.append({
-                'begin': int(m.group(1), 16),
-                'end': int(m.group(2), 16),
-                'name': m.group(3)
+                'begin': int(match.group(1), 16),
+                'end': int(match.group(2), 16),
+                'name': match.group(3)
             })
 
     print('done')
     return result
 
 
-def convert_number(s):
+def convert_number(number):
     """Converts number to LaTeX name parts
 
     Args:
-        s: positive integer
+        number: positive integer
 
     Returns:
         String containing LaTeX name parts
 
     """
-    return ' ' + ' '.join(list(int_to_roman(s))) + ' '
+    return ' ' + ' '.join(list(int_to_roman(number))) + ' '
 
 
-def convert_name(s, specials=False):
+def convert_name(string, specials=False):
     """Converts an entire name by appending its parts
 
     Args:
-        s: unescaped python string containing all parts of the name
+        string: unescaped python string containing all parts of the name
         specials: if True, special characters get converted to strings
 
     Returns:
@@ -112,69 +111,74 @@ def convert_name(s, specials=False):
     """
     # convert special characters to string representations
     if specials:
-        s = s.replace('-', ' Minus ')
+        string = string.replace('-', ' Minus ')
 
     # convert numbers to roman strings
-    s = re.sub(r"[0-9]+", lambda x: convert_number(int(x.group(0))), s)
+    string = re.sub(
+        r"[0-9]+",
+        lambda x: convert_number(int(x.group(0))),
+        string
+    )
 
     # strip all illegal characters
-    s = re.sub(r"[^a-zA-Z\s]", '', s)
+    string = re.sub(r"[^a-zA-Z\s]", '', string)
 
     # remove unnecessary whitespaces
-    s = s.strip()
-    s = re.sub(r"\s+", ' ', s)
+    string = string.strip()
+    string = re.sub(r"\s+", ' ', string)
 
     # build one string of all words
-    a = s.split(' ')
-    a = map(lambda x: x[0].upper() + x[1:].lower(), a)
-    return ''.join(a)
+    return ''.join(
+        x[0].upper() + x[1:].lower()
+        for x in string.split(' ')
+    )
 
 
-def package_name(s):
+def package_name(string):
     """Converts a string to a LaTeX package name
 
     Args:
-        s: unescaped python string
+        string: unescaped python string
 
     Returns:
         LaTeX package name
 
     """
-    return 'USymbol' + convert_name(s, False)
+    return 'USymbol' + convert_name(string, False)
 
 
-def symbol_name(s):
+def symbol_name(string):
     """Converts a string to a LaTeX symbol name
 
     Args:
-        s: unescaped python string
+        string: unescaped python string
 
     Returns:
         LaTeX symbol name
 
     """
-    return 'USymbol' + convert_name(s, True)
+    return 'USymbol' + convert_name(string, True)
 
 
-def print_header(s, f):
+def print_header(name, texfile):
     """Prints a LaTeX section header comment to a file
 
     Args:
-        s: name of the section header (one word!)
-        f: LaTeX file
+        name: name of the section header (one word!)
+        texfile: LaTeX file
 
     """
-    f.write('\n')
-    f.write('%--------------------\n')
-    f.write('%---' + s.upper() + ('-' * (17 - len(s))) + '\n')
-    f.write('%--------------------\n')
+    texfile.write('\n')
+    texfile.write('%--------------------\n')
+    texfile.write('%---' + name.upper() + ('-' * (17 - len(name))) + '\n')
+    texfile.write('%--------------------\n')
 
 
 def create_new_package(
         pname,
         dout,
         version,
-        date,
+        pdate,
         description,
         fdocall=None,
         fall=None
@@ -185,7 +189,7 @@ def create_new_package(
         pname: escaped package name
         dout: output directory
         version: package version string
-        date: package date (YYYY/MM/DD)
+        pdate: package date (YYYY/MM/DD)
         description: package description
         fdocall: main documentation .tex file
         fall: LaTeX package that collects all packages (metapackage)
@@ -194,17 +198,17 @@ def create_new_package(
         File handler of the new LaTeX package file
 
     """
-    f = open(dout + '/' + pname + '.sty', 'w')
+    fpackage = open(dout + '/' + pname + '.sty', 'w')
     fdoc = open(dout + '/' + pname + '.tex', 'w')
 
-    f.write(
+    fpackage.write(
         '\\NeedsTeXFormat{{LaTeX2e}}\n'
         '\\ProvidesPackage{{{0}}}[{1} v{2} {3}]\n'
-        .format(pname, date, version, description)
+        .format(pname, pdate, version, description)
     )
 
-    print_header('requirements', f)
-    f.write(
+    print_header('requirements', fpackage)
+    fpackage.write(
         '\\RequirePackage{{ifluatex}}\n'
         '\\RequirePackage{{ifxetex}}\n'
         '\\ifluatex\n'
@@ -225,9 +229,9 @@ def create_new_package(
             .format(pname)
         )
 
-        print_header('style', f)
+        print_header('style', fpackage)
         pall = package_name('all')
-        f.write(
+        fpackage.write(
             '\\newcommand{{\\{0}@style}}[1]{{#1}}\n'
             '\\newcommand{{\\{0}Style}}[1]'
             '{{\\renewcommand{{\\{0}@style}}[1]{{{{#1##1}}}}}}\n'
@@ -247,27 +251,27 @@ def create_new_package(
     else:
         doc_begin(fdoc)
 
-    print_header('symbols', f)
+    print_header('symbols', fpackage)
 
-    return f, fdoc
+    return fpackage, fdoc
 
 
-def finalize_package(f, fdoc, all=False):
+def finalize_package(texfile, fdoc, pall=False):
     """Write final LaTeX package data and close stream
 
     Args:
-        f: LaTeX file
+        texfile: LaTeX file
         fdoc: documentation .tex file
-        all: True if f is the metapackage (all)
+        pall: True if f is the metapackage (all)
 
     """
-    if f:
-        print_header('end', f)
-        f.write('\\endinput\n')
-        f.close()
+    if texfile:
+        print_header('end', texfile)
+        texfile.write('\\endinput\n')
+        texfile.close()
         print('done')
 
-        if all:
+        if pall:
             doc_end(fdoc)
         else:
             fdoc.write(
@@ -318,18 +322,18 @@ def doc_end(fdoc):
     fdoc.close()
 
 
-def print_symbol(f, name, hnumber, pname, fdoc):
+def print_symbol(texfile, name, hnumber, pname, fdoc):
     """Prints a symbol definition to a LaTeX file
 
     Args:
-        f: LaTeX file
+        texfile: LaTeX file
         name: escpaed symbol name
         hnumber: hexnumber string
         pname: escaped package name
         fdoc: documentation .tex file
 
     """
-    f.write(
+    texfile.write(
         '\\newcommand{{\\{0}}}{{\\{1}@style{{\\symbol{{"{2}}}}}}}\n'
         .format(name, pname, hnumber)
     )
@@ -339,7 +343,7 @@ def print_symbol(f, name, hnumber, pname, fdoc):
     )
 
 
-def process_data(fdata, blocks, dout, version, date):
+def process_data(fdata, blocks, dout, version, datestring):
     """Processes UnicodeData.txt
 
     Args:
@@ -347,7 +351,7 @@ def process_data(fdata, blocks, dout, version, date):
         blocks: parsed blocks
         dout: output directory
         version: package version string
-        date: date string (YYYY/MM/DD)
+        datestring: date string (YYYY/MM/DD)
 
     """
     print('')
@@ -356,54 +360,54 @@ def process_data(fdata, blocks, dout, version, date):
         pname=package_name('all'),
         dout=dout,
         version=version,
-        date=date,
+        pdate=datestring,
         description='Provides macros for all Unicode symbols',
     )
-    f = None
+    fpackage = None
     fdoc = None
-    it = iter(blocks)
+    blockiter = iter(blocks)
     end = None
     pname = None
     index = set()
 
-    for l in fdata:
+    for line in fdata:
         # parse line
-        a = l.split(';')
-        hnumber = a[0]
-        name1 = a[1]
-        name2 = a[10]
+        splitted = line.split(';')
+        hnumber = splitted[0]
+        name1 = splitted[1]
+        name2 = splitted[10]
         name_base = symbol_name(name1 + ' ' + name2)
         name = name_base
 
         # prevent duplicate names
-        n = 1
+        counter = 1
         while name in index:
-            n += 1
-            name = name_base + convert_name(str(n))
+            counter += 1
+            name = name_base + convert_name(str(counter))
         index.add(name)
 
         # next block?
-        if (not f) or (int(hnumber, 16) > end):
-            finalize_package(f, fdoc)
+        if (not fpackage) or (int(hnumber, 16) > end):
+            finalize_package(fpackage, fdoc)
 
-            block = next(it)
+            block = next(blockiter)
             print(block['name'] + ': ', end='')
             end = block['end']
             pname = package_name(block['name'])
-            f, fdoc = create_new_package(
+            fpackage, fdoc = create_new_package(
                 pname=pname,
                 dout=dout,
                 version=version,
-                date=date,
+                pdate=datestring,
                 description='Provides macros for Unicode symbols of block {0}'
                 .format(block['name']),
                 fall=fall,
                 fdocall=fdocall
             )
 
-        print_symbol(f, name, hnumber, pname, fdoc)
+        print_symbol(fpackage, name, hnumber, pname, fdoc)
 
-    finalize_package(f, fdoc)
+    finalize_package(fpackage, fdoc)
     finalize_package(fall, fdocall, True)
 
 
@@ -458,7 +462,7 @@ def main():
         blocks=blocks,
         dout=args.output,
         version=args.version,
-        date=args.date
+        datestring=args.date
     )
     args.data.close()
 
