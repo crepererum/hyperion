@@ -7,19 +7,35 @@ import re
 
 """Helper map for roman number convertion"""
 NUMERAL_MAP = (
-    (1000,  'M'),
-    ( 900, 'CM'),
-    ( 500,  'D'),
-    ( 400, 'CD'),
-    ( 100,  'C'),
-    (  90, 'XC'),
-    (  50,  'L'),
-    (  40, 'XL'),
-    (  10,  'X'),
-    (   9, 'IX'),
-    (   5,  'V'),
-    (   4, 'IV'),
-    (   1,  'I')
+    (10000000,  'S'),
+    ( 9000000, 'FS'),
+    ( 5000000,  'T'),
+    ( 4000000, 'FT'),
+    ( 1000000,  'F'),
+    (  900000, 'AF'),
+    (  500000,  'G'),
+    (  400000, 'AG'),
+    (  100000,  'A'),
+    (   90000, 'ZA'),
+    (   50000,  'B'),
+    (   40000, 'ZB'),
+    (   10000,  'Z'),
+    (    9000, 'MZ'),
+    (    5000,  'Y'),
+    (    4000, 'MY'),
+    (    1000,  'M'),
+    (     900, 'CM'),
+    (     500,  'D'),
+    (     400, 'CD'),
+    (     100,  'C'),
+    (      90, 'XC'),
+    (      50,  'L'),
+    (      40, 'XL'),
+    (      10,  'X'),
+    (       9, 'IX'),
+    (       5,  'V'),
+    (       4, 'IV'),
+    (       1,  'I')
 )
 
 
@@ -154,7 +170,7 @@ def print_header(s, f):
     f.write('%--------------------\n')
 
 
-def create_new_package(pname, dout, version, date, description, fall=None):
+def create_new_package(pname, dout, version, date, description, fdocall=None, fall=None):
     """Creates a new LaTeX package
 
     Args:
@@ -163,6 +179,7 @@ def create_new_package(pname, dout, version, date, description, fall=None):
         version: package version string
         date: package date (YYYY/MM/DD)
         description: package description
+        fdocall: main documentation .tex file
         fall: LaTeX package that collects all packages (metapackage)
 
     Returns:
@@ -170,6 +187,7 @@ def create_new_package(pname, dout, version, date, description, fall=None):
 
     """
     f = open(dout + '/' + pname + '.sty', 'w')
+    fdoc = open(dout + '/' + pname + '.tex', 'w')
 
     f.write('\\NeedsTeXFormat{LaTeX2e}\n')
     f.write('\\ProvidesPackage{' + pname + '}[' + date
@@ -203,16 +221,23 @@ def create_new_package(pname, dout, version, date, description, fall=None):
         f.write('\\renewcommand{\\' + pall + 'Style}[1]{\\' + pname + 'Style{#1}\\' + pname + '@list{#1}}%\n')
         f.write('}\n')
 
+        fdoc.write('\\section{' + pname + '}\n')
+        fdocall.write('\\include{' + pname + '}\n')
+    else:
+        doc_begin(fdoc)
+
     print_header('symbols', f)
 
-    return f
+    return f, fdoc
 
 
-def finalize_package(f):
+def finalize_package(f, fdoc, all=False):
     """Write final LaTeX package data and close stream
 
     Args:
         f: LaTeX file
+        fdoc: documentation .tex file
+        all: True if f is the metapackage (all)
 
     """
     if f:
@@ -221,8 +246,56 @@ def finalize_package(f):
         f.close()
         print('done')
 
+        if all:
+            doc_end(fdoc)
+        else:
+            fdoc.write('\\endinput\n')
+            fdoc.write('\n')
+            fdoc.close()
 
-def print_symbol(f, name, hnumber, pname):
+
+def doc_begin(fdoc):
+    """Creates new main documentation file
+
+    Args:
+        fdoc: documentation TeX file
+
+    """
+    fdoc.write('\\documentclass{hyperiondoc}\n')
+    fdoc.write('\n')
+
+    fdoc.write('\\usepackage{adjustbox}\n')
+    fdoc.write('\\usepackage{' + package_name('all') + '}\n')
+    fdoc.write('\\newfontfamily{\\symbola}{Symbola}\n')
+    fdoc.write('\\USymbolAllStyle{\\symbola}\n')
+    fdoc.write('\n')
+
+    fdoc.write('\\newcommand{\\symboldemo}[3]{%\n')
+    fdoc.write('    \\noindent\\begin{minipage}[c]{.1\\textwidth}\n')
+    fdoc.write('        \\centering\\textlarger[2]{#3}\n')
+    fdoc.write('    \\end{minipage}%\n')
+    fdoc.write('    \\begin{minipage}{.8\\textwidth}\n')
+    fdoc.write('        $\\mathtt{0x#1}$\\\\[-0.4em]')
+    fdoc.write('        \\adjustbox{max width=.9\\textwidth}{\\code{\\bs #2}}\n')
+    fdoc.write('    \\end{minipage}\\\\[0.6em]\n')
+    fdoc.write('}\n')
+    fdoc.write('\n')
+
+    fdoc.write('\\begin{document}\n')
+
+
+def doc_end(fdoc):
+    """Finalize and close documentation file
+
+    Args:
+        fdoc: documentation .tex file
+
+    """
+    fdoc.write('\\end{document}\n')
+    fdoc.close()
+
+
+def print_symbol(f, name, hnumber, pname, fdoc):
     """Prints a symbol definition to a LaTeX file
 
     Args:
@@ -230,9 +303,11 @@ def print_symbol(f, name, hnumber, pname):
         name: escpaed symbol name
         hnumber: hexnumber string
         pname: escaped package name
+        fdoc: documentation .tex file
 
     """
     f.write('\\newcommand{\\' + name + '}{\\' + pname + '@style{\\symbol{"' + hnumber + '}}}\n')
+    fdoc.write('\\symboldemo{' + hnumber + '}{' + name + '}{\\' + name + '}\n')
 
 
 def process_data(fdata, blocks, dout, version, date):
@@ -248,18 +323,19 @@ def process_data(fdata, blocks, dout, version, date):
     """
     print('')
     print('---Process data---')
-    fall = create_new_package(
+    fall, fdocall = create_new_package(
         pname=package_name('all'),
         dout=dout,
         version=version,
         date=date,
-        description='Provides macros for all Unicode symbols'
+        description='Provides macros for all Unicode symbols',
     )
     f = None
+    fdoc = None
     it = iter(blocks)
     end = None
     pname = None
-    index = {}
+    index = set()
 
     for l in fdata:
         # parse line
@@ -267,35 +343,38 @@ def process_data(fdata, blocks, dout, version, date):
         hnumber = a[0]
         name1 = a[1]
         name2 = a[10]
-        name = symbol_name(name1 + ' ' + name2)
+        name_base = symbol_name(name1 + ' ' + name2)
+        name = name_base
 
         # prevent duplicate names
+        n = 1
         while name in index:
-            index[name] += 1
-            name += convert_name(str(index[name]))
-        index[name] = 1
+            n += 1
+            name = name_base + convert_name(str(n))
+        index.add(name)
 
         # next block?
         if (not f) or (int(hnumber, 16) > end):
-            finalize_package(f)
+            finalize_package(f, fdoc)
 
             block = next(it)
             print(block['name'] + ': ', end='')
             end = block['end']
             pname = package_name(block['name'])
-            f = create_new_package(
+            f, fdoc = create_new_package(
                 pname=pname,
                 dout=dout,
                 version=version,
                 date=date,
                 description='Provides macros for Unicode symbols of block ' + block['name'],
-                fall=fall
+                fall=fall,
+                fdocall=fdocall
             )
 
-        print_symbol(f, name, hnumber, pname)
+        print_symbol(f, name, hnumber, pname, fdoc)
 
-    finalize_package(f)
-    finalize_package(fall)
+    finalize_package(f, fdoc)
+    finalize_package(fall, fdocall, True)
 
 
 def main():
