@@ -1,4 +1,4 @@
-msgpack-python==0.4.1
+msgpack-python==0.4.2
 pyinotify==0.9.4
-PyYAML==3.10
+PyYAML==3.11
 

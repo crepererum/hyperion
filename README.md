@@ -1,4 +1,4 @@
-#hyperion [![Build Status](https://travis-ci.org/crepererum/hyperion.svg?branch=master)](https://travis-ci.org/crepererum/hyperion)
+#hyperion [![Build Status](https://travis-ci.org/crepererum/hyperion.svg?branch=master)](https://travis-ci.org/crepererum/hyperion) [![Requirements Status](https://requires.io/github/crepererum/hyperion/requirements.png?branch=master)](https://requires.io/github/crepererum/hyperion/requirements/?branch=master)
 This provides modern LaTeX classes, workflow information and useful utilities. It contains the following parts:
 
  - **autotex** a modern TeX compilation tool
