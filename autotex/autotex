@@ -493,6 +493,23 @@ def detect_actions(path, auto_only=True):
         if o
     )
 
+    # prepare argument substitution
+    s_path = path
+    s_woext, s_ext = os.path.splitext(path)
+    s_dir, s_basename = os.path.split(path)
+    replace_dict = {
+        '??': '?',
+        '?b': s_basename,
+        '?d': s_dir,
+        '?e': s_ext,
+        '?p': s_path,
+        '?w': s_woext
+    }
+    pattern = re.compile('|'.join(
+        re.escape(k)
+        for k in replace_dict.keys()
+    ))
+
     # find all matching commands
     actions = []
     for cmd in commands_filtered:
@@ -501,21 +518,6 @@ def detect_actions(path, auto_only=True):
         args = cmd['args'].copy() if 'args' in cmd else {}
 
         # substitute string arguments
-        s_path = path
-        s_woext, s_ext = os.path.splitext(path)
-        s_dir, s_basename = os.path.split(path)
-        replace_dict = {
-            '??': '?',
-            '?b': s_basename,
-            '?d': s_dir,
-            '?e': s_ext,
-            '?p': s_path,
-            '?w': s_woext
-        }
-        pattern = re.compile('|'.join(
-            re.escape(k)
-            for k in replace_dict.keys()
-        ))
         for key, value in args.items():
             if type(value) == str:
                 args[key] = pattern.sub(

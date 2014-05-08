@@ -182,7 +182,7 @@ def create_new_package(
         description,
         fdocall=None,
         fall=None
-        ):
+):
     """Creates a new LaTeX package
 
     Args:
