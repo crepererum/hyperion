@@ -297,7 +297,7 @@ class TexBibAction(CommandAction):
         self.path = path
         super().__init__(
             command='biber ' + self.path,
-            ignores=[r"\.blg$"]
+            ignores=[r"\.blg$", r"\.utf8$"]
         )
 
 
