@@ -18,6 +18,7 @@
 %
 % This work consists of the files hyperion.dtx and hyperion.ins
 % and the derived files:
+%   hyperionartcl.sty
 %   hyperionbook.sty
 %   hyperiondoc.sty
 %
@@ -58,16 +59,25 @@
 %
 %
 % \section{Classes}
-% There are two classes: \code{hyperionbook}, which is based on \code{scrbook} and \code{hyperiondoc}, which is based on \code{ltxdoc}.
+% There are the following classes:
+% \begin{itemize}
+%     \item \code{hyperionartcl}: based on \code{scrartcl}, should be used for short scientific articles and papers
+%     \item \code{hyperionbook}: based on \code{scrbook}, should be used for longer scientific texts like thesis and dissertation
+%     \item \code{hyperiondoc}: based on \code{ltxdoc}, should be used to for package, class and tool documentation
+% \end{itemize}
 %
 %    \begin{macrocode}
 \NeedsTeXFormat{LaTeX2e}
 %
+%<artcl>\ProvidesClass{hyperionartcl}%
 %<book>\ProvidesClass{hyperionbook}%
 %<doc>\ProvidesClass{hyperiondoc}%
 [2014/02/08 v1.0 %
+%<artcl>Modern and beautiful scrartcl-based class]
 %<book>Modern and beautiful scrbook-based class]
 %<doc>Modern and beautiful ltxdoc class]
+%
+%<artcl>\LoadClass{scrartcl}
 %
 %<book>\LoadClass[% Class based on scrbook
 %<book>    fontsize=11pt,% bigger font
@@ -89,6 +99,7 @@
 \RequirePackage{ifluatex}
 \ifluatex
 \else
+%<artcl>\ClassError{hyperionartcl}%
 %<book>\ClassError{hyperionbook}%
 %<doc>\ClassError{hyperiondoc}%
 {LuaLaTeX required!}%
@@ -301,6 +312,7 @@ See http://www.luatex.org/}
 %
 % \subsection{Structure}
 %    \begin{macrocode}
+\RequirePackage{multicol}
 \RequirePackage{amsthm}
 \RequirePackage[
     list=on% add subfigures/-tables to list of figures

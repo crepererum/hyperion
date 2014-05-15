@@ -17,6 +17,7 @@
 %%
 %% This work consists of the files hyperion.dtx and hyperion.ins
 %% and the derived files:
+%%   hyperionartcl.sty
 %%   hyperionbook.sty
 %%   hyperiondoc.sty
 %%
@@ -42,6 +43,7 @@ version 2005/12/01 or later.
 
 \endpreamble
 
+\generate{\file{hyperionartcl.cls}{\from{hyperion.dtx}{artcl}}}
 \generate{\file{hyperionbook.cls}{\from{hyperion.dtx}{book}}}
 \generate{\file{hyperiondoc.cls}{\from{hyperion.dtx}{doc}}}
 
@@ -50,6 +52,7 @@ version 2005/12/01 or later.
 \Msg{* To finish the installation you have to move the}
 \Msg{* following files into a directory searched by TeX:}
 \Msg{*}
+\Msg{* \space\space hyperionartcl.cls}
 \Msg{* \space\space hyperionbook.cls}
 \Msg{* \space\space hyperiondoc.cls}
 \Msg{*}
