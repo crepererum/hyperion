@@ -21,6 +21,7 @@
 %   hyperionartcl.sty
 %   hyperionbook.sty
 %   hyperiondoc.sty
+%   hyperionstandalone.sty
 %
 % \fi
 %
@@ -64,6 +65,7 @@
 %     \item \code{hyperionartcl}: based on \code{scrartcl}, should be used for short scientific articles and papers
 %     \item \code{hyperionbook}: based on \code{scrbook}, should be used for longer scientific texts like thesis and dissertation
 %     \item \code{hyperiondoc}: based on \code{ltxdoc}, should be used to for package, class and tool documentation
+%     \item \code{hyperionstandalone}: based on \code{standalone}, should be used for examples and to export single figures and tables
 % \end{itemize}
 %
 %    \begin{macrocode}
@@ -72,10 +74,12 @@
 %<artcl>\ProvidesClass{hyperionartcl}%
 %<book>\ProvidesClass{hyperionbook}%
 %<doc>\ProvidesClass{hyperiondoc}%
+%<standalone>\ProvidesClass{hyperionstandalone}%
 [2014/02/08 v1.0 %
 %<artcl>Modern and beautiful scrartcl-based class]
 %<book>Modern and beautiful scrbook-based class]
-%<doc>Modern and beautiful ltxdoc class]
+%<doc>Modern and beautiful ltxdoc-based class]
+%<standalone>Modern and beautiful standalone-based class]
 %
 %<artcl>\LoadClass{scrartcl}
 %
@@ -89,6 +93,8 @@
 %<book>]{scrbook}
 %
 %<doc>\LoadClass{ltxdoc}
+%
+%<standalone>\LoadClass{standalone}
 %    \end{macrocode}
 %
 %
@@ -102,6 +108,7 @@
 %<artcl>\ClassError{hyperionartcl}%
 %<book>\ClassError{hyperionbook}%
 %<doc>\ClassError{hyperiondoc}%
+%<standalone>\ClassError{hyperionstandalone}%
 {LuaLaTeX required!}%
 {Please use LuaLaTeX to compile this file. %
 See http://www.luatex.org/}
