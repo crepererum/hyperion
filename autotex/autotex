@@ -150,14 +150,21 @@ class FileAction(Action):
                 and self.checksum != self.calc_file_checksum())
 
     def update(self):
-        self.checksum = self.calc_file_checksum()
-        checksum_string = str(binascii.hexlify(self.checksum), 'utf8')
         if self.path not in INOTIFY_FILTER:
             INOTIFY_FILTER.add(self.path)
-        print('File changed: "{}" (Checksum={})'.format(
-            self.path,
-            checksum_string
+
+        self.checksum = self.calc_file_checksum()
+        checksum_string = str(binascii.hexlify(self.checksum), 'utf8')
+        if len(checksum_string) > 9:
+            checksum_string = '{}.{}'.format(
+                checksum_string[:4],
+                checksum_string[-4:]
+            )
+        print_changed('Changed ({}): {}'.format(
+            checksum_string,
+            self.path
         ))
+
         super().update()
         return []
 
@@ -200,8 +207,7 @@ class CommandAction(Action):
 
     def update(self):
         # run child process and redirect output
-        sys.stdout.write(self.command + ': -')
-        sys.stdout.flush()
+        print_execute(self.command + ': -', False)
         tfname = CONFIG['tmpdir'] + '/trace.log'
         self.status = None
         with open(CONFIG['log'], 'a') as flog, \
@@ -241,8 +247,11 @@ class CommandAction(Action):
 
                 if changed:
                     counter = (counter + 1) % 4
-                    sys.stdout.write('\b')
-                    self.print_process(counter)
+                    print_execute(
+                        '\b' + self.get_process_char(counter),
+                        False,
+                        True
+                    )
                 else:
                     time.sleep(0.05)
             stack.pop_all()
@@ -262,9 +271,9 @@ class CommandAction(Action):
         result = [a for fa in fas for a in detect_actions(fa.path)] + list(fas)
 
         if self.status == 0:
-            print('\bOK')
+            print_execute('\bOK', True, True)
         else:
-            print('\bFAILED({})'.format(self.status))
+            print_error('\bFAILED({})'.format(self.status), True, True)
         super().update()
         return result
 
@@ -274,16 +283,18 @@ class CommandAction(Action):
             for ext in self.ignores
         )
 
-    def print_process(self, counter):
-        sys.stdout.write('-/|\\'[counter])
-        sys.stdout.flush()
+    def get_process_char(self, counter):
+        return '-/|\\'[counter]
 
     def print_char(self, char, counter):
-        sys.stdout.write('\b')
+        string = '\b'
         if char == '\n':
-            sys.stdout.write(' ')
-        sys.stdout.write(char)
-        self.print_process(counter)
+            string += ' '
+        print_execute(string, False, True)
+
+        print_error(char, False, True)
+
+        print_execute(self.get_process_char(counter), False, True)
 
     def print_log_header(self, flog):
         flog.write('\n')
@@ -378,7 +389,7 @@ class INotifyHandler(pyinotify.ProcessEvent):
         with INOTIFY_CONDITION:
             path = os.path.relpath(event.pathname)
             if CONFIG['verbose']:
-                print(path + ': ' + event.maskname)
+                print_debug(path + ': ' + event.maskname)
             if path in INOTIFY_FILTER:
                 INOTIFY_FILTER.remove(path)
             INOTIFY_CONDITION.notify_all()
@@ -614,6 +625,35 @@ def patch_dict(orig, patch):
     return result
 
 
+def print_master(msg, marker, newline, append):
+    if not append:
+        sys.stdout.write('[{}] '.format(marker))
+    sys.stdout.write(msg)
+    if newline:
+        print()
+    sys.stdout.flush()
+
+
+def print_info(msg, newline=True, append=False):
+    print_master(msg, 'i', newline, append)
+
+
+def print_changed(msg, newline=True, append=False):
+    print_master(msg, '~', newline, append)
+
+
+def print_execute(msg, newline=True, append=False):
+    print_master(msg, '+', newline, append)
+
+
+def print_error(msg, newline=True, append=False):
+    print_master(msg, 'X', newline, append)
+
+
+def print_debug(msg, newline=True, append=False):
+    print_master(msg, '.', newline, append)
+
+
 def restore_state():
     # load data from file
     with gzip.open(CONFIG['state'], 'rb') as statefile:
@@ -639,7 +679,7 @@ def restore_state():
         action.deps.update(table[y] for y in j['deps'])
         action.influences.update(table[y] for y in j['influences'])
 
-    print('State restored from file')
+    print_info('State restored')
     return set(table.values())
 
 
@@ -749,7 +789,7 @@ def main():
             exit(1)
 
     if not actions:
-        print('Error: no matching action for this file!')
+        print_error('No matching action for this file!')
         exit(1)
 
     # setup inotify
@@ -800,36 +840,34 @@ def main():
                 except KeyboardInterrupt:
                     signal.signal(signal.SIGINT, signal.SIG_IGN)
                     print()
-                    print('Interrupted')
+                    print_info('Interrupted')
                     terminate = True
 
                 # debug prints
                 if CONFIG['verbose']:
-                    print()
-                    print('Tracked commands:')
+                    print_debug('')
+                    print_debug('Tracked commands:')
                     for action in actions:
-                        print(str(action))
-                    print()
+                        print_debug(str(action))
+                    print_debug('')
 
                 # safe state
                 if changed:
                     save_state(actions)
                 elif CONFIG['continuously'] and not terminate:
-                    sys.stdout.write('Nothing to do, wait')
-                    sys.stdout.flush()
+                    print_info('Sleep', False)
                     try:
                         while not any(a.needs_update() for a in actions):
-                            sys.stdout.write('.')
-                            sys.stdout.flush()
+                            print_info('.', False, True)
                             INOTIFY_CONDITION.wait()
                             time.sleep(CONFIG['continuously_wait'])
-                        print('got something!')
+                        print_info('wake up!', True, True)
                         changed = True
                         rounds = 0
                     except KeyboardInterrupt:
                         signal.signal(signal.SIGINT, signal.SIG_IGN)
                         print()
-                        print('Interrupted')
+                        print_info('Interrupted')
                         terminate = True
                     continue
 
@@ -837,15 +875,15 @@ def main():
                 if (CONFIG['max_rounds'] != 0) \
                         and (rounds > CONFIG['max_rounds']) \
                         and not terminate:
-                    print('Error: Reached maximum number of rounds!')
+                    print_error('Reached maximum number of rounds!')
                     exit(1)
 
     # check status of all actions
     if any(a.check_status() for a in actions):
-        print('There are some errors')
+        print_error('There are some errors!')
         exit(1)
 
-    print('done')
+    print_info('Done')
 
 if __name__ == '__main__':
     main()
