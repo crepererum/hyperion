@@ -12,3 +12,6 @@ for (var i = 0; i < parsed.length; ++i) {
 }
 ```
 
+## publish.sh
+This script helps you to create an optimized PDF file. It also ensures that all required metadata gets embedded. It requires [Ghostscript](http://www.ghostscript.com/) to be installed.
+
