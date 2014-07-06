@@ -8,7 +8,7 @@ fi
 
 # check command line arguments
 if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 file.pdf" >&2
+    echo "Usage: $(basename $0) <file.pdf>" >&2
     exit 1
 fi
 
@@ -43,7 +43,14 @@ EOF
 
 # run ghostscript
 printf "Processing file..."
-gs -q -sDEVICE=pdfwrite -dCompatibilityLevel=1.5 -dPDFSETTINGS=/prepress -dCompressFonts=true -dEmbedAllFonts=true -dNOPAUSE -dBATCH -sOutputFile=$output $input $pdfmarks
+gs -q -sDEVICE=pdfwrite \
+    -dCompatibilityLevel=1.5 \
+    -dPDFSETTINGS=/prepress \
+    -dCompressFonts=true \
+    -dEmbedAllFonts=true \
+    -dNOPAUSE \
+    -dBATCH \
+    -sOutputFile=$output $input $pdfmarks
 echo "done"
 
 # clean up
