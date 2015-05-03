@@ -191,6 +191,66 @@ See http://www.luatex.org/}
 %    \end{macrocode}
 %
 %
+% \subsection{Symbols and Math}
+% \begin{macro}{\set}
+% \begin{macro}{\card}
+% \begin{macro}{\concat}
+% \begin{macro}{\prob}
+% \begin{macro}{\mutual}
+% \begin{macro}{\entropy}
+% \begin{macro}{\code}
+% \begin{macro}{\bs}
+% Nearly all symbols you need are imported and some helpers for math typesetting are available. Math is emitted as Unicode which provides a clearer look than the standard font and kerning hacks. This also enables the user to copy-and-paste symbol and search for equations.
+%
+% \begin{center}
+% \begin{tabularx}{\linewidth}{lXX}
+%     \toprule
+%     Macro & Example & Result \\
+%     \midrule
+%     \code{\bs set} & \code{\$\bs set\{N\}\$} & $\set{N}$ \\
+%     \code{\bs card} & \code{\$\bs card\{A\}\$} & $\card{A}$ \\
+%     \code{\bs concat} & \code{\$A \bs concat B\$} & $A \concat B$ \\
+%     \code{\bs prob} & \code{\$\bs prob\{X\}\$} & $\prob{X}$ \\
+%     \code{\bs mutual} & \code{\$\bs mutual\{X\}\{Y\}\$} & $\mutual{X}{Y}$ \\
+%     \code{\bs entropy} & \code{\$\bs entropy\{X\}\$} & $\entropy{X}$ \\
+%     \code{\bs code} & \code{\bs code\{getID()\}} & \code{getID()} \\
+%     \code{\bs var} & \code{\bs code\{getName(\bs var\{id\})\}} & \code{getName(\var{id})} \\
+%     \code{\bs bs} & \code{\bs bs} & \bs \\
+%     \bottomrule
+% \end{tabularx}
+% \end{center}
+%
+%    \begin{macrocode}
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{metalogo}
+\RequirePackage{ccicons}
+\RequirePackage{siunitx}% after: amssymb
+\RequirePackage[intoc]{nomencl}
+\RequirePackage{unicode-math}% after:amsmath before:pgfplots
+\setmathfont{xits-math.otf}
+\makenomenclature
+\renewcommand{\nomname}{List of Symbols}
+\newcommand{\set}[1]{\mathbb{#1}}
+\newcommand{\card}[1]{\left|#1\right|}
+\newcommand{\concat}{+\kern-0.8ex:}
+\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
+\newcommand{\mutual}[2]{\mathrm{I}\left(#1,#2\right)}
+\newcommand{\entropy}[1]{\mathrm{H}\left(#1\right)}
+\newcommand{\code}[1]{\textsmaller{\textcolor{colcode}{\texttt{#1}}}}
+\newcommand{\var}[1]{\textit{#1}}
+\newcommand{\bs}{\textbackslash}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%
+%
 % \subsection{Graphics}
 %    \begin{macrocode}
 \PassOptionsToPackage{
@@ -257,66 +317,6 @@ See http://www.luatex.org/}
     \pgfkeys{/pgf/fpu=false}
 }
 %    \end{macrocode}
-%
-%
-% \subsection{Symbols and Math}
-% \begin{macro}{\set}
-% \begin{macro}{\card}
-% \begin{macro}{\concat}
-% \begin{macro}{\prob}
-% \begin{macro}{\mutual}
-% \begin{macro}{\entropy}
-% \begin{macro}{\code}
-% \begin{macro}{\bs}
-% Nearly all symbols you need are imported and some helpers for math typesetting are available. Math is emitted as Unicode which provides a clearer look than the standard font and kerning hacks. This also enables the user to copy-and-paste symbol and search for equations.
-%
-% \begin{center}
-% \begin{tabularx}{\linewidth}{lXX}
-%     \toprule
-%     Macro & Example & Result \\
-%     \midrule
-%     \code{\bs set} & \code{\$\bs set\{N\}\$} & $\set{N}$ \\
-%     \code{\bs card} & \code{\$\bs card\{A\}\$} & $\card{A}$ \\
-%     \code{\bs concat} & \code{\$A \bs concat B\$} & $A \concat B$ \\
-%     \code{\bs prob} & \code{\$\bs prob\{X\}\$} & $\prob{X}$ \\
-%     \code{\bs mutual} & \code{\$\bs mutual\{X\}\{Y\}\$} & $\mutual{X}{Y}$ \\
-%     \code{\bs entropy} & \code{\$\bs entropy\{X\}\$} & $\entropy{X}$ \\
-%     \code{\bs code} & \code{\bs code\{getID()\}} & \code{getID()} \\
-%     \code{\bs var} & \code{\bs code\{getName(\bs var\{id\})\}} & \code{getName(\var{id})} \\
-%     \code{\bs bs} & \code{\bs bs} & \bs \\
-%     \bottomrule
-% \end{tabularx}
-% \end{center}
-%
-%    \begin{macrocode}
-\RequirePackage{amsmath}
-\RequirePackage{amssymb}
-\RequirePackage{metalogo}
-\RequirePackage{ccicons}
-\RequirePackage{siunitx}% after: amssymb
-\RequirePackage[intoc]{nomencl}
-\RequirePackage{unicode-math}% after:amsmath
-\setmathfont{xits-math.otf}
-\makenomenclature
-\renewcommand{\nomname}{List of Symbols}
-\newcommand{\set}[1]{\mathbb{#1}}
-\newcommand{\card}[1]{\left|#1\right|}
-\newcommand{\concat}{+\kern-0.8ex:}
-\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
-\newcommand{\mutual}[2]{\mathrm{I}\left(#1,#2\right)}
-\newcommand{\entropy}[1]{\mathrm{H}\left(#1\right)}
-\newcommand{\code}[1]{\textsmaller{\textcolor{colcode}{\texttt{#1}}}}
-\newcommand{\var}[1]{\textit{#1}}
-\newcommand{\bs}{\textbackslash}
-%    \end{macrocode}
-% \end{macro}
-% \end{macro}
-% \end{macro}
-% \end{macro}
-% \end{macro}
-% \end{macro}
-% \end{macro}
-% \end{macro}
 %
 %
 % \subsection{Structure}
