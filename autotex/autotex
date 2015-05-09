@@ -313,14 +313,34 @@ class TexBibAction(CommandAction):
 
 
 class TexCompileAction(CommandAction):
-    def __init__(self, path, engine='luatex', latex=True, output_format='pdf'):
+    def __init__(
+            self,
+            path,
+            engine='luajittex',
+            latex=True,
+            output_format='pdf'):
         self.path = path
         self.engine = engine.lower()
         self.latex = latex
         self.output_format = output_format.lower()
 
         cmd = ''
-        if self.engine == 'luatex':
+        if self.engine == 'luajittex':
+            cmd = 'luajittex --fmt='
+
+            if self.latex:
+                cmd = cmd + 'lualatex'
+            else:
+                cmd = cmd + 'luatex'
+
+            cmd = cmd + ' --jiton --file-line-error --interaction=nonstopmode'
+
+            if self.output_format in ['dvi', 'pdf']:
+                cmd = cmd + ' --output-format=' + self.output_format
+            else:
+                raise Exception('Format(' + self.output_format
+                                + ') is not supported by LuaTeX!')
+        elif self.engine == 'luatex':
             if self.latex:
                 cmd = 'lualatex'
             else:

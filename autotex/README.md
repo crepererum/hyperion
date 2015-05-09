@@ -181,11 +181,12 @@ Compiles .tex or .dtx files to different formats using different engines. Constr
 
  The following engines and output formats are supported:
 
-| Engine   | Supported Formats |
-| -------- | ----------------- |
-| `luatex` | `dvi`, `pdf`      |
-| `pdftex` | `dvi`, `pdf`      |
-| `xetex`  | `pdf`, `xdv`      |
+| Engine      | Supported Formats |
+| ----------- | ----------------- |
+| `luatex`    | `dvi`, `pdf`      |
+| `luajittex` | `dvi`, `pdf`      |
+| `pdftex`    | `dvi`, `pdf`      |
+| `xetex`     | `pdf`, `xdv`      |
 
 ###`TexIndexAction`
 Creates an index by calling `makeindex`. Constructor arguments:
