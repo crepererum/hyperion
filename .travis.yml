@@ -1,9 +1,10 @@
 language: python
+sudo: false
 python:
-    - "3.3"
+    - "3.4"
 install:
-    - pip install -r ./autotex/requirements.txt
-    - pip install -r ./autotex/requirements-dev.txt
+    - pip install -U pip
+    - cd autotex && pip install -e .[dev] && cd ..
 script:
     - flake8 -v .
     - pylint --rcfile=.pylintrc ./autotex/autotex
