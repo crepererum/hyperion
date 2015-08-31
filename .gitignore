@@ -35,6 +35,7 @@ unicode/*.txt
 # cache and bytecode
 .autotex.state
 *.pyc
+*.pyo
 
 # tmp files
 *~
